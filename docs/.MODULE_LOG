@@ -1,0 +1,28 @@
+>>
+Script is used     : e3TemplateGenerator.bash
+Script Path        : /home/anderssandstrom/plugin_ecmc/e3-tools/e3TemplateGenerator
+Script Version     : 1.0.8
+Script Run Time    : 2020Mar22-1607-33CET
+User               : anderssandstrom
+e3-tools Hash      : bf03d40
+>>
+>> git diff 
+
+>>
+>> git diff --cached
+
+>>
+>> git diff HEAD
+
+
+>>
+>> Your sources are located in e3-ecmcPlugin_Simple.
+>> 
+EPICS_MODULE_NAME  : ecmcPlugin_Simple
+E3_MODULE_SRC_PATH : ecmcPlugin_Simple
+E3_TARGET_URL      : https://github.com/anderssandstrom
+>> 
+e3 module name     : e3-ecmcPlugin_Simple
+e3 target url full : https://github.com/anderssandstrom/e3-ecmcPlugin_Simple.git
+>> 
+e3 module is located in siteMods

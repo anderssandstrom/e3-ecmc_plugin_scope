@@ -1,0 +1,124 @@
+# Status
+record(longin,"$(P)Plugin-FFT${INDEX}-stat"){
+  field(DESC, "Status")
+  field(PINI, "1")
+  field(DTYP, "asynInt32")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.status")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+# Data source
+record(waveform,"$(P)Plugin-FFT${INDEX}-Source"){
+  field(DESC, "Data source name")
+  field(PINI, "1")
+  field(DTYP, "asynInt8ArrayIn")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.source")
+  field(FTVL, "CHAR")
+  field(NELM, "1024")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")  
+}
+
+# Rawdata
+record(waveform,"$(P)Plugin-FFT${INDEX}-Raw-Data-Act"){
+  info(asyn:FIFO, "1000")
+  field(DESC, "Raw data")
+  field(PINI, "1")
+  field(DTYP, "asynFloat64ArrayIn")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.rawdata")
+  field(FTVL, "DOUBLE")
+  field(NELM, "$(NELM)")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+# Pre-processed data
+record(waveform,"$(P)Plugin-FFT${INDEX}-PreProc-Data-Act"){
+  info(asyn:FIFO, "1000")
+  field(DESC, "Pre-processed data")
+  field(PINI, "1")
+  field(DTYP, "asynFloat64ArrayIn")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.preprocdata")
+  field(FTVL, "DOUBLE")
+  field(NELM, "$(NELM)")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+# FFT amplitude result
+record(waveform,"$(P)Plugin-FFT${INDEX}-Spectrum-Amp-Act"){
+  info(asyn:FIFO, "1000")
+  field(DESC, "FFT spectrum amplitude result")
+  field(PINI, "1")
+  field(DTYP, "asynFloat64ArrayIn")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.fftamplitude")
+  field(FTVL, "DOUBLE")
+  field(NELM, "$(NELM)")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+# FFT xaxis
+record(waveform,"$(P)Plugin-FFT${INDEX}-Spectrum-X-Axis-Act"){
+  info(asyn:FIFO, "1000")
+  field(DESC, "Raw data")
+  field(PINI, "1")
+  field(DTYP, "asynFloat64ArrayIn")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.fftxaxis")
+  field(FTVL, "DOUBLE")
+  field(NELM, "$(NELM)")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+record(bo,"$(P)Plugin-FFT${INDEX}-Enable"){
+  field(DESC, "FFT Enable")
+  field(DTYP,"asynInt32")
+  field(OUT, "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.enable")
+  field(ZNAM,"FALSE")
+  field(ONAM,"TRUE")
+  field(DOL, "0")
+  field(VAL, "0")
+}
+
+record(bo,"$(P)Plugin-FFT${INDEX}-Trigg"){
+  field(DESC, "FFT Trigg measurement")
+  field(DTYP,"asynInt32")
+  field(OUT, "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.trigg")
+  field(ZNAM,"FALSE")
+  field(ONAM,"TRUE")
+  field(DOL, "0")
+  field(VAL, "0")
+}
+
+record(longout,"$(P)Plugin-FFT${INDEX}-Mode-RB"){
+  info(asyn:READBACK,"1")
+  field(PINI, "1")
+  field(TSE,  "0")
+  field(DTYP, "asynInt32")
+  field(OUT,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.mode")
+  field(SCAN, "Passive")
+}
+
+# Status
+record(longin,"$(P)Plugin-FFT${INDEX}-NFFT"){
+  field(DESC, "NFFT")
+  field(PINI, "1")
+  field(DTYP, "asynInt32")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.nfft")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+# Samplerate
+record(ai,"$(P)Plugin-FFT${INDEX}-SampleRate-Act"){
+  field(DESC, "NFFT")
+  field(PINI, "1")
+  field(DTYP, "asynFloat64")
+  field(INP,  "@asyn(PLUGIN.FFT${INDEX},$(ADDR=0),$(TIMEOUT=1000))plugin.fft${INDEX}.samplerate")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+
