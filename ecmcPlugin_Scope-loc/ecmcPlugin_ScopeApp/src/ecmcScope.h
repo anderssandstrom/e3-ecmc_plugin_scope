@@ -14,6 +14,7 @@
 
 #include <stdexcept>
 #include "ecmcDataItem.h"
+#include "ecmcAsynPortDriver.h"
 #include "ecmcScopeDefs.h"
 #include "inttypes.h"
 #include <string>
@@ -28,35 +29,35 @@ class ecmcScope {
    *    - runtime_error
    *    - out_of_range
   */
-  ecmcScope(int   scopeIndex,    // index of this object  
-            char* configStr            );
+  ecmcScope(int         scopeIndex,    // index of this object  
+            char*       configStr);
   ~ecmcScope();  
 
   // Add data to buffer (called from "external" callback)
-  void                  dataUpdatedCallback(uint8_t* data, 
-                                            size_t size,
-                                            ecmcEcDataType dt);
+  // void                  dataUpdatedCallback(uint8_t* data, 
+  //                                           size_t size,
+  //                                           ecmcEcDataType dt);
   // Call just before realtime because then all data sources should be available
   void                  connectToDataSource();
   void                  setEnable(int enable);
   void                  clearBuffers();
   void                  triggScope();
+  void                  execute();
 
  private:
   void                  parseConfigStr(char *configStr);
   void                  addDataToBuffer(double data);
+  bool                  sourceDataTypeSupported(ecmcEcDataType dt);
   void                  initAsyn();
   
-  ecmcDataItem         *dataItem_;
-  ecmcDataItemInfo     *dataItemInfo_;
+  uint8_t*              rawDataBuffer_;
+  size_t                rawDataBufferBytes_;
+  ecmcDataItem         *sourceDataItem_;
+  ecmcDataItemInfo     *sourceDataItemInfo_;
 
-  double*               rawDataBuffer_;      // Input data (real)
-  double*               prepProcDataBuffer_; // Preprocessed data (real)
-  size_t                elementsInBuffer_;
-  double                ecmcSampleRateHz_;
   int                   dataSourceLinked_;   // To avoid link several times
   // ecmc callback handle for use when deregister at unload
-  int                   callbackHandle_;
+  //int                   callbackHandle_;
   int                   destructs_;
   int                   objectId_;           // Unique object id
   int                   triggOnce_;
@@ -68,12 +69,8 @@ class ecmcScope {
   int                   cfgEnable_;          // Config: Enable data acq./calc.
 
   // Asyn
-  int                   asynEnableId_;       // Enable/disable acq./calcs
-  int                   asynRawDataId_;      // Raw data (input) array (double)
-  int                   asynSourceId_;       // SOURCE
-  int                   asynTriggId_;        // Trigg new measurement
-  int                   asynBufferSizeId_;         // NFFT
-    
+  ecmcAsynDataItem     *sourceParam_;
+
   // Some generic utility functions
   static uint8_t        getUint8(uint8_t* data);
   static int8_t         getInt8(uint8_t* data);

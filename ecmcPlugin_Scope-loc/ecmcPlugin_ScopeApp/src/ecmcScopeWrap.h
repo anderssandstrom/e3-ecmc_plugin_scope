@@ -26,6 +26,8 @@ int         clearScope(int scopeIndex);
 int         triggScope(int scopeIndex);
 
 
+int         executeScopes();
+
 /** \brief Link data to _all_ scope objects
  *
  *  This tells the Scope lib to connect to ecmc to find it's data source.\n
@@ -42,6 +44,8 @@ int  linkDataToScopes();
  */
 
 void deleteAllScopes();
+
+
 
 # ifdef __cplusplus
 }

@@ -104,3 +104,12 @@ int triggScope(int scopeIndex) {
   }  
   return 0;
 }
+
+int executeScopes() {
+   for(std::vector<ecmcScope*>::iterator pscope = scopes.begin(); pscope != scopes.end(); ++pscope) {
+    if(*pscope) {
+      (*pscope)->execute();
+    }
+  } 
+  return 0;
+}

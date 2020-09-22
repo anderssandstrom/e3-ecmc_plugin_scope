@@ -62,8 +62,8 @@ void scopeDestruct(void)
  **/
 int scopeRealtime(int ecmcError)
 { 
-  lastEcmcError = ecmcError;
-  return 0;
+  lastEcmcError = ecmcError;  
+  return executeScopes();
 }
 
 /** Link to data source here since all sources should be availabe at this stage

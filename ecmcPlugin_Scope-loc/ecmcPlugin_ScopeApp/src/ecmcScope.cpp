@@ -24,15 +24,13 @@
 #include <sstream>
 #include "ecmcScope.h"
 #include "ecmcPluginClient.h"
-#include "ecmcAsynPortDriver.h"
-
 
 // New data callback from ecmc
 static int printMissingObjError = 1;
 
 /** This callback will not be used (sample data inteface is used instead to get an stable sample freq)
   since the callback is called when data is updated it might */
-void f_dataUpdatedCallback(uint8_t* data, size_t size, ecmcEcDataType dt, void* obj) {
+/*void f_dataUpdatedCallback(uint8_t* data, size_t size, ecmcEcDataType dt, void* obj) {
   if(!obj) {
     if(printMissingObjError){
       printf("%s/%s:%d: Error: Callback object NULL.. Data will not be added to buffer.\n",
@@ -45,7 +43,7 @@ void f_dataUpdatedCallback(uint8_t* data, size_t size, ecmcEcDataType dt, void* 
 
   // Call the correct scope object with new data
   scopeObj->dataUpdatedCallback(data,size,dt);
-}
+}*/
 
 /** ecmc Scope class
  * This object can throw: 
@@ -54,23 +52,17 @@ void f_dataUpdatedCallback(uint8_t* data, size_t size, ecmcEcDataType dt, void* 
  *    - runtime_error
 */
 ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several is created)
-                     char* configStr)                  
-                   {
+                     char* configStr){
   cfgDataSourceStr_ = NULL;
-  rawDataBuffer_    = NULL;
-  elementsInBuffer_ = 0;  
-  callbackHandle_   = -1;
+  rawDataBuffer_    = NULL;  
+  //callbackHandle_   = -1;
   objectId_         = scopeIndex;  
   triggOnce_        = 0;
   dataSourceLinked_ = 0;
+  rawDataBufferBytes_ = 0;
 
   // Asyn
-  asynEnableId_     = -1;    // Enable/disable acq./calcs
-  asynRawDataId_    = -1;    // Raw data (input) array (double)
-  asynSourceId_     = -1;    // SOURCE
-  asynTriggId_      = -1;    // Trigg new measurement
-
-  ecmcSampleRateHz_ = getEcmcSampleRate();  
+  sourceParam_      = NULL;
 
   // Config defaults
   cfgDbgMode_       = 0;
@@ -84,12 +76,11 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
     throw std::out_of_range("Buffer Size must be > 0.");
   }
 
-      // Allocate buffers
-  rawDataBuffer_      = new double[cfgBufferSize_];               // Raw input data (real)
-    
-  clearBuffers();
-
+  // Allocate buffer use element size of 8 bytes to cover all cases
+  rawDataBuffer_      = new uint8_t[cfgBufferSize_ * 8];  // Raw input data (real)
+  rawDataBufferBytes_ = cfgBufferSize_ * 8;
   initAsyn();
+
 }
 
 ecmcScope::~ecmcScope() {
@@ -99,9 +90,9 @@ ecmcScope::~ecmcScope() {
   }
 
   // De register callback when unload
-  if(callbackHandle_ >= 0) {
-    dataItem_->deregDataUpdatedCallback(callbackHandle_);
-  }
+  // if(callbackHandle_ >= 0) {
+  //   sourceDataItem_->deregDataUpdatedCallback(callbackHandle_);
+  // }
 
   if(cfgDataSourceStr_) {
     free(cfgDataSourceStr_);
@@ -177,97 +168,127 @@ void ecmcScope::connectToDataSource() {
   }
 
   // Get dataItem
-  dataItem_        = (ecmcDataItem*) getEcmcDataItem(cfgDataSourceStr_);
-  if(!dataItem_) {
+  sourceDataItem_        = (ecmcDataItem*) getEcmcDataItem(cfgDataSourceStr_);
+  if(!sourceDataItem_) {
     throw std::runtime_error( "Data item NULL." );
   }
   
-  dataItemInfo_ = dataItem_->getDataItemInfo();
+  sourceDataItemInfo_ = sourceDataItem_->getDataItemInfo();
 
   // Register data callback
-  callbackHandle_ = dataItem_->regDataUpdatedCallback(f_dataUpdatedCallback, this);
-  if (callbackHandle_ < 0) {
-    throw std::runtime_error( "Failed to register data source callback.");
+  // callbackHandle_ = sourceDataItem_->regDataUpdatedCallback(f_dataUpdatedCallback, this);
+  // if (callbackHandle_ < 0) {
+  //   throw std::runtime_error( "Failed to register data source callback.");
+  // }
+
+  if(!sourceDataTypeSupported(sourceDataItem_->getEcmcDataType())) {
+    throw std::runtime_error( "Source data type not suppported.");
   }
 
-  // Check data source
-//   if( !dataTypeSupported(dataItem_->getEcmcDataType()) ) {
-//     throw std::invalid_argument( "Data type not supported." );
-//   }
   dataSourceLinked_ = 1;
 }
 
-void ecmcScope::dataUpdatedCallback(uint8_t*       data, 
-                                  size_t         size,
-                                  ecmcEcDataType dt) {
-  
-  // No buffer or full or not enabled
-  if(!rawDataBuffer_ || !cfgEnable_) {
-    return;
+bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
+
+ switch(dt) {
+    case ECMC_EC_NONE:      
+      return 0;
+      break;
+    case ECMC_EC_B1:
+      return 0;
+      break;
+    case ECMC_EC_B2:
+      return 0;
+      break;
+    case ECMC_EC_B3:
+      return 0;
+      break;
+    case ECMC_EC_B4:
+      return 0;
+      break;
+    default:
+      return 1;
+      break;
   }
 
-  if(cfgDbgMode_) {
-    printEcDataArray(data, size, dt, objectId_);
-
-    if(elementsInBuffer_ == cfgBufferSize_) {
-      printf("Buffer full (%zu elements appended).\n",elementsInBuffer_);
-    }
-  }
   
-  size_t dataElementSize = getEcDataTypeByteSize(dt);
+  return 1;
+}
+void ecmcScope::execute() {
+  //Get all new data here!!  
+   printf("NEW DATA (%u bytes)!!!!!!!!!!!!!!!!!!!!!!!\n",0);
 
-  uint8_t *pData = data;
-  for(unsigned int i = 0; i < size / dataElementSize; ++i) {    
-    switch(dt) {
-      case ECMC_EC_U8:        
-        addDataToBuffer((double)getUint8(pData));
-        break;
-      case ECMC_EC_S8:
-        addDataToBuffer((double)getInt8(pData));
-        break;
-      case ECMC_EC_U16:
-        addDataToBuffer((double)getUint16(pData));
-        break;
-      case ECMC_EC_S16:
-        addDataToBuffer((double)getInt16(pData));
-        break;
-      case ECMC_EC_U32:
-        addDataToBuffer((double)getUint32(pData));
-        break;
-      case ECMC_EC_S32:
-        addDataToBuffer((double)getInt32(pData));
-        break;
-      case ECMC_EC_U64:
-        addDataToBuffer((double)getUint64(pData));
-        break;
-      case ECMC_EC_S64:
-        addDataToBuffer((double)getInt64(pData));
-        break;
-      case ECMC_EC_F32:
-        addDataToBuffer((double)getFloat32(pData));
-        break;
-      case ECMC_EC_F64:
-        addDataToBuffer((double)getFloat64(pData));
-        break;
-      default:
-        break;
-    }
+}
+
+
+// void ecmcScope::dataUpdatedCallback(uint8_t*       data, 
+//                                     size_t         size,
+//                                     ecmcEcDataType dt) {
+//   printf("NEW DATA (%u bytes)!!!!!!!!!!!!!!!!!!!!!!!\n",size);
+
+//   // No buffer or full or not enabled  
+//   if(!rawDataBuffer_ || !cfgEnable_) {
+//     return;
+//   }
+
+//   if(cfgDbgMode_) {
+//     printEcDataArray(data, size, dt, objectId_);
+//   }
+  
+//   size_t dataElementSize = getEcDataTypeByteSize(dt);
+  
+//   // uint8_t *pData = data;
+//   // for(unsigned int i = 0; i < size / dataElementSize; ++i) {    
+//   //   switch(dt) {
+//   //     case ECMC_EC_U8:        
+//   //       addDataToBuffer((double)getUint8(pData));
+//   //       break;
+//   //     case ECMC_EC_S8:
+//   //       addDataToBuffer((double)getInt8(pData));
+//   //       break;
+//   //     case ECMC_EC_U16:
+//   //       addDataToBuffer((double)getUint16(pData));
+//   //       break;
+//   //     case ECMC_EC_S16:
+//   //       addDataToBuffer((double)getInt16(pData));
+//   //       break;
+//   //     case ECMC_EC_U32:
+//   //       addDataToBuffer((double)getUint32(pData));
+//   //       break;
+//   //     case ECMC_EC_S32:
+//   //       addDataToBuffer((double)getInt32(pData));
+//   //       break;
+//   //     case ECMC_EC_U64:
+//   //       addDataToBuffer((double)getUint64(pData));
+//   //       break;
+//   //     case ECMC_EC_S64:
+//   //       addDataToBuffer((double)getInt64(pData));
+//   //       break;
+//   //     case ECMC_EC_F32:
+//   //       addDataToBuffer((double)getFloat32(pData));
+//   //       break;
+//   //     case ECMC_EC_F64:
+//   //       addDataToBuffer((double)getFloat64(pData));
+//   //       break;
+//   //     default:
+//   //       break;
+//   //   }
     
-    pData += dataElementSize;
-  }
-}
+//   //   pData += dataElementSize;
+//   //}
+// }
 
-void ecmcScope::addDataToBuffer(double data) {
-  if(rawDataBuffer_ && (elementsInBuffer_ < cfgBufferSize_) ) {
-    rawDataBuffer_[elementsInBuffer_] = data;    
-  }
-  elementsInBuffer_ ++;
-}
+// void ecmcScope::addDataToBuffer(double data) {
+//   if(rawDataBuffer_ && (elementsInBuffer_ < cfgBufferSize_) ) {
+//     rawDataBuffer_[elementsInBuffer_] = data;    
+//   }
+//   elementsInBuffer_ ++;
+// }
 
-void ecmcScope::clearBuffers() {
-  memset(rawDataBuffer_,   0, cfgBufferSize_ * sizeof(double));
-  elementsInBuffer_ = 0;
-}
+// void ecmcScope::clearBuffers() {
+//   memset(rawDataBuffer_,   0, cfgBufferSize_ * sizeof(double));
+//   elementsInBuffer_ = 0;
+// }
 
 void ecmcScope::printEcDataArray(uint8_t*       data, 
                                size_t         size,
@@ -439,28 +460,36 @@ size_t ecmcScope::getEcDataTypeByteSize(ecmcEcDataType dt){
 
 void ecmcScope::initAsyn() {
 
-//   ecmcAsynPortDriver *ecmcAsynPort = (ecmcAsynPortDriver *)getEcmcAsynPortDriver();
-//   if(!ecmcAsynPort) {
-//     printf("Error: ecmcPlugin_Advanced: ecmcAsynPortDriver NULL.");
-//     return ECMC_ERROR_ASYNPORT_NULL;
-//   }
-//   // Add a dummy counter that incraeses one for each rt cycle
-//   paramCount = ecmcAsynPort->addNewAvailParam(
-//                                         "plugin.adv.counter",  // name
-//                                          asynParamInt32,       // asyn type 
-//                                          (uint8_t *)&(counter),// pointer to data
-//                                          sizeof(counter),      // size of data
-//                                          ECMC_EC_S32,          // ecmc data type
-//                                          0);                   // die if fail
-//   if(!paramCount) {
-//     printf("Error: ecmcPlugin_Advanced: Failed to create asyn param \"plugin.adv.counter\".");
-//     return ECMC_ERROR_ASYN_PARAM_FAIL;
-//   }
-//   paramCount->addSupportedAsynType(asynParamInt32);  // Only allow records of this type 
-//   paramCount->setAllowWriteToEcmc(false);  // read only
-//   paramCount->refreshParam(1); // read once into asyn param lib
-//   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);
-//   return 0;
+   ecmcAsynPortDriver *ecmcAsynPort = (ecmcAsynPortDriver *)getEcmcAsynPortDriver();
+   if(!ecmcAsynPort) {
+     throw std::runtime_error( "ecmcAsynPort NULL." );
+   }
+
+   // Add rawdata "plugin.scope%d.rawdata" use doube in beginning..
+  std::string paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
+                          "." + ECMC_PLUGIN_ASYN_RAWDATA;
+
+  sourceParam_ = ecmcAsynPort->addNewAvailParam(
+                                          paramName.c_str(),    // name
+                                          asynParamFloat64Array,// asyn type 
+                                          rawDataBuffer_,       // pointer to data
+                                          rawDataBufferBytes_,  // size of data
+                                          ECMC_EC_F64,          // ecmc data type
+                                          0);                   // die if fail
+
+  if(!sourceParam_) {     
+     throw std::runtime_error( "Failed create asyn param for source: " + paramName);
+  }
+
+  // Support all array since do not know correct type yet..
+  sourceParam_->addSupportedAsynType(asynParamInt8Array);
+  sourceParam_->addSupportedAsynType(asynParamInt16Array);
+  sourceParam_->addSupportedAsynType(asynParamInt32Array);
+  sourceParam_->addSupportedAsynType(asynParamFloat32Array);
+  sourceParam_->addSupportedAsynType(asynParamFloat64Array);
+  sourceParam_->setAllowWriteToEcmc(false);  // read only
+  sourceParam_->refreshParam(1); // read once into asyn param lib
+  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 }
 
 // Avoid issues with std:to_string()
@@ -472,11 +501,9 @@ std::string ecmcScope::to_string(int value) {
 
 void ecmcScope::setEnable(int enable) {
   cfgEnable_ = enable;
-  //setIntegerParam(asynEnableId_, enable);
 }
   
 void ecmcScope::triggScope() {
   clearBuffers();
   triggOnce_ = 1;
-  //setIntegerParam(asynTriggId_,0);
 }
