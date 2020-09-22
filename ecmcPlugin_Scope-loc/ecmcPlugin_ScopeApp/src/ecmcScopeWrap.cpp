@@ -49,7 +49,7 @@ int createScope(char* configStr) {
   return 0;
 }
 
-void deleteAllScopess() {
+void deleteAllScopes() {
   for(std::vector<ecmcScope*>::iterator pscope = scopes.begin(); pscope != scopes.end(); ++pscope) {
     if(*pscope) {
       delete (*pscope);
@@ -61,7 +61,7 @@ int  linkDataToScopes() {
   for(std::vector<ecmcScope*>::iterator pscope = scopes.begin(); pscope != scopes.end(); ++pscope) {
     if(*pscope) {
       try {
-        (*pscope)->connectToDataSource();
+        (*pscope)->connectToDataSources();
       }
       catch(std::exception& e) {
         printf("Exception: %s. Plugin will unload.\n",e.what());

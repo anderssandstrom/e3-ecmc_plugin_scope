@@ -37,11 +37,10 @@ ecmcConfigOrDie "Cfg.EcSelectReferenceDC(0,$(ECMC_EC_SLAVE_NUM))"
 #Apply hardware configuration
 ecmcConfigOrDie "Cfg.EcApplyConfig(1)"
 
-
 ########################################################################s######
 ## Load plugin: Scope
 epicsEnvSet(ECMC_PLUGIN_FILNAME,"/home/pi/sources/e3-ecmcPlugin_Scope/ecmcPlugin_Scope-loc/O.7.0.4_linux-arm/libecmcPlugin_Scope.so")
-epicsEnvSet(ECMC_PLUGIN_CONFIG,"SOURCE=ec0.s${SLAVE_NUM_AI}.mm.CH1_ARRAY;DBG_PRINT=0;BUFFERSIZE=1024;")
+epicsEnvSet(ECMC_PLUGIN_CONFIG,"SOURCE=ec0.s${SLAVE_NUM_AI}.mm.CH1_ARRAY;DBG_PRINT=0;TRIGG=ec0.s${SLAVE_NUM_TRIGG}.CH1_LATCH_POS;SOURCE_NEXTTIME=ec0.s${SLAVE_NUM_AI}.NEXT_TIME;BUFFERSIZE=1024;")
 ${SCRIPTEXEC} ${ecmccfg_DIR}loadPlugin.cmd, "PLUGIN_ID=1,FILE=${ECMC_PLUGIN_FILNAME},CONFIG='${ECMC_PLUGIN_CONFIG}', REPORT=1"
 epicsEnvUnset(ECMC_PLUGIN_FILNAME)
 epicsEnvUnset(ECMC_PLUGIN_CONFIG)

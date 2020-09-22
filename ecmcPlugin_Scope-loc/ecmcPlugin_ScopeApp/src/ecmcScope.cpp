@@ -53,17 +53,28 @@ static int printMissingObjError = 1;
 */
 ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several is created)
                      char* configStr){
-  cfgDataSourceStr_ = NULL;
-  rawDataBuffer_    = NULL;  
-  //callbackHandle_   = -1;
-  objectId_         = scopeIndex;  
-  triggOnce_        = 0;
-  dataSourceLinked_ = 0;
+  cfgDataSourceStr_   = NULL;
+  cfgDataNexttimeStr_ = NULL;
+  cfgTriggStr_        = NULL;
+  rawDataBuffer_      = NULL;  
+  objectId_           = scopeIndex;  
+  triggOnce_          = 0;
+  dataSourceLinked_   = 0;
   rawDataBufferBytes_ = 0;
-
+  oldTriggTime_       = 0;
+  triggTime_          = 0;
   // Asyn
-  sourceParam_      = NULL;
+  sourceParam_            = NULL;
 
+  // ecmcDataItems
+  sourceDataItem_         = NULL;
+  sourceDataNexttimeItem_ = NULL;
+  sourceTriggItem_        = NULL;
+
+  sourceDataItemInfo_     = NULL;
+  sourceDataNexttimeItemInfo_ = NULL;
+  sourceTriggItemInfo_    = NULL;
+  
   // Config defaults
   cfgDbgMode_       = 0;
   cfgBufferSize_    = ECMC_PLUGIN_DEFAULT_BUFFER_SIZE;
@@ -89,14 +100,15 @@ ecmcScope::~ecmcScope() {
     delete[] rawDataBuffer_;
   }
 
-  // De register callback when unload
-  // if(callbackHandle_ >= 0) {
-  //   sourceDataItem_->deregDataUpdatedCallback(callbackHandle_);
-  // }
-
   if(cfgDataSourceStr_) {
     free(cfgDataSourceStr_);
   }
+  if(cfgTriggStr_) {
+    free(cfgTriggStr_);
+  }
+  if(cfgDataNexttimeStr_) {
+    free(cfgDataNexttimeStr_);
+  }  
 }
 
 void ecmcScope::parseConfigStr(char *configStr) {
@@ -138,6 +150,19 @@ void ecmcScope::parseConfigStr(char *configStr) {
         cfgEnable_ = atoi(pThisOption);
       }
 
+      // ECMC_PLUGIN_TRIGG_OPTION_CMD (string)     
+      else if (!strncmp(pThisOption, ECMC_PLUGIN_TRIGG_OPTION_CMD, strlen(ECMC_PLUGIN_TRIGG_OPTION_CMD))) {
+        pThisOption += strlen(ECMC_PLUGIN_TRIGG_OPTION_CMD);
+        cfgTriggStr_ = strdup(pThisOption);
+      }
+
+      // ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD (string)
+      else if (!strncmp(pThisOption, ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD, strlen(ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD))) {
+        pThisOption += strlen(ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD);
+        cfgDataNexttimeStr_ = strdup(pThisOption);
+      }
+
+
       // ECMC_PLUGIN_MODE_OPTION_CMD CONT/TRIGG
     //   else if (!strncmp(pThisOption, ECMC_PLUGIN_MODE_OPTION_CMD, strlen(ECMC_PLUGIN_MODE_OPTION_CMD))) {
     //     pThisOption += strlen(ECMC_PLUGIN_MODE_OPTION_CMD);
@@ -158,23 +183,46 @@ void ecmcScope::parseConfigStr(char *configStr) {
   if(!cfgDataSourceStr_) { 
     throw std::invalid_argument( "Data source not defined.");
   }
+  if(!cfgTriggStr_) { 
+    throw std::invalid_argument( "Trigger not defined.");
+  }
+  if(!cfgDataNexttimeStr_) { 
+    throw std::invalid_argument( "Source Nexttime not defined.");
+  }
 }
 
-void ecmcScope::connectToDataSource() {
+void ecmcScope::connectToDataSources() {
   /* Check if already linked (one call to enterRT per loaded Scope lib (Scope object))
       But link should only happen once!!*/
   if( dataSourceLinked_ ) {
     return;
   }
 
-  // Get dataItem
+  // Get source dataItem
   sourceDataItem_        = (ecmcDataItem*) getEcmcDataItem(cfgDataSourceStr_);
   if(!sourceDataItem_) {
-    throw std::runtime_error( "Data item NULL." );
+    throw std::runtime_error( "Source dataitem NULL." );
   }
-  
   sourceDataItemInfo_ = sourceDataItem_->getDataItemInfo();
 
+  // Get source nexttime dataItem
+  sourceDataNexttimeItem_        = (ecmcDataItem*) getEcmcDataItem(cfgDataNexttimeStr_);
+  if(!sourceDataNexttimeItem_) {
+    throw std::runtime_error( "Source nexttime dataitem NULL." );
+  }
+  sourceDataNexttimeItemInfo_ = sourceDataNexttimeItem_->getDataItemInfo();
+
+  // Get trigg dataItem
+  sourceTriggItem_        = (ecmcDataItem*) getEcmcDataItem(cfgTriggStr_);
+  if(!sourceTriggItem_) {
+    throw std::runtime_error( "Source trigg dataitem NULL." );
+  }
+  
+  sourceTriggItemInfo_ = sourceTriggItem_->getDataItemInfo();
+  if( sourceTriggItem_->read((uint8_t*)(&oldTriggTime_),sourceTriggItemInfo_->dataElementSize)){
+    throw std::runtime_error( "Failed read trigg time." );
+  }
+  
   // Register data callback
   // callbackHandle_ = sourceDataItem_->regDataUpdatedCallback(f_dataUpdatedCallback, this);
   // if (callbackHandle_ < 0) {
@@ -215,10 +263,28 @@ bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
   return 1;
 }
 void ecmcScope::execute() {
-  //Get all new data here!!  
-   printf("NEW DATA (%u bytes)!!!!!!!!!!!!!!!!!!!!!!!\n",0);
 
+  
+  // sourceDataItem_
+  // sourceDataNexttimeItem_
+  // sourceTriggItem_
+  // sourceDataItemInfo_
+  // sourceDataNexttimeItemInfo_
+  // sourceTriggItemInfo_
+  
+
+  if( sourceTriggItem_->read((uint8_t*)&triggTime_,sourceTriggItemInfo_->dataElementSize)){
+    throw std::runtime_error( "Failed read trigg time." );
+  }
+
+  if(oldTriggTime_ != triggTime_ ) {
+    printf("New trigger!!\n");
+  }
+  
+  oldTriggTime_ = triggTime_;
 }
+
+
 
 
 // void ecmcScope::dataUpdatedCallback(uint8_t*       data, 

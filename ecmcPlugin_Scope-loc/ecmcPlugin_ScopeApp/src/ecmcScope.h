@@ -38,7 +38,7 @@ class ecmcScope {
   //                                           size_t size,
   //                                           ecmcEcDataType dt);
   // Call just before realtime because then all data sources should be available
-  void                  connectToDataSource();
+  void                  connectToDataSources();
   void                  setEnable(int enable);
   void                  clearBuffers();
   void                  triggScope();
@@ -54,16 +54,24 @@ class ecmcScope {
   size_t                rawDataBufferBytes_;
   ecmcDataItem         *sourceDataItem_;
   ecmcDataItemInfo     *sourceDataItemInfo_;
-
+  ecmcDataItem         *sourceDataNexttimeItem_;
+  ecmcDataItemInfo     *sourceDataNexttimeItemInfo_;
+  ecmcDataItem         *sourceTriggItem_;
+  ecmcDataItemInfo     *sourceTriggItemInfo_;
+  
   int                   dataSourceLinked_;   // To avoid link several times
   // ecmc callback handle for use when deregister at unload
   //int                   callbackHandle_;
   int                   destructs_;
   int                   objectId_;           // Unique object id
   int                   triggOnce_;
-  
+
+  uint64_t              triggTime_;
+  uint64_t              oldTriggTime_;
   // Config options
   char*                 cfgDataSourceStr_;   // Config: data source string
+  char*                 cfgDataNexttimeStr_; // Config: data source string
+  char*                 cfgTriggStr_;        // Config: trigg string
   int                   cfgDbgMode_;         // Config: allow dbg printouts
   size_t                cfgBufferSize_;      // Config: Data set size
   int                   cfgEnable_;          // Config: Enable data acq./calc.
