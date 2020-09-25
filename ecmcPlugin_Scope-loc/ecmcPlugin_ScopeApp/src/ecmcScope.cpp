@@ -317,7 +317,7 @@ void ecmcScope::execute() {
         throw std::runtime_error( "Failed source data." );
       }
       
-      if( sourceDataNexttimeItem_->read((uint8_t*)&sourceNexttime_,sourceDataNexttimeItemInfo_->dataSize)){
+      if( sourceDataNexttimeItem_->read((uint8_t*)&sourceNexttime_,sourceDataNexttimeItemInfo_->dataElementSize)){
         throw std::runtime_error( "Failed read next time." );
       }
 
@@ -377,7 +377,7 @@ void ecmcScope::execute() {
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
         printf("Change state to ECMC_SCOPE_STATE_WAIT_TRIGG!!!\n");
         printf("Result Buffer full! SEND OVER ASYN!!!\n");
-        printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
+        //printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
       }
     
     break;
@@ -385,7 +385,6 @@ void ecmcScope::execute() {
     return;
     break;
   }
-  
   
 }
 
@@ -400,15 +399,15 @@ uint64_t ecmcScope::timeDiff() {
 
   if(sourceTriggItemInfo_->dataBitCount<64 || sourceDataNexttimeItemInfo_->dataBitCount<=64) {
     // use only 32bit dc info
-    uint32_t trigg = (uint32_t)triggTime_;
-    uint32_t next  = (uint32_t)sourceNexttime_;
+    uint32_t trigg = getUint32((uint8_t*)&triggTime_);
+    uint32_t next  = getUint32((uint8_t*)&sourceNexttime_);
     printf("trigg=%u, next=%u\n",trigg,next);
-    if(trigg > next) {
-      return std::numeric_limits<uint32_t>::max() - trigg + next;
-    }
-    else {
+    //if(trigg > next) {
+    //  return std::numeric_limits<uint32_t>::max() - trigg + next;
+   // }
+   // else {
       return next-trigg;
-    }
+    //}
   }
 
   return sourceNexttime_ - triggTime_;
