@@ -95,6 +95,12 @@ double scope_enable(double index, double enable) {
 double scope_trigg(double index) {
   return (double)triggScope((int)index);
 }
+#define ECMC_PLUGIN_DBG_PRINT_OPTION_CMD       "DBG_PRINT="
+#define ECMC_PLUGIN_SOURCE_OPTION_CMD          "SOURCE="
+#define ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD "SOURCE_NEXTTIME="
+#define ECMC_PLUGIN_TRIGG_OPTION_CMD           "TRIGG="
+#define ECMC_PLUGIN_RESULT_ELEMENTS_OPTION_CMD "RESULT_ELEMENS="
+#define ECMC_PLUGIN_ENABLE_OPTION_CMD          "ENABLE="
 
 // Register data for plugin so ecmc know what to use
 struct ecmcPluginData pluginDataDef = {
@@ -106,8 +112,11 @@ struct ecmcPluginData pluginDataDef = {
   .desc = "Scope plugin for use with ecmc.",
   // Option description
   .optionDesc = "\n    "ECMC_PLUGIN_DBG_PRINT_OPTION_CMD"<1/0>    : Enables/disables printouts from plugin, default = disabled.\n"
-                "    "ECMC_PLUGIN_SOURCE_OPTION_CMD"<source>    : Sets source variable for FFT (example: ec0.s1.AI_1).\n"
-                "    "ECMC_PLUGIN_BUFFER_SIZE_OPTION_CMD"<Buffer size>        : Data points to collect, default = 4096.\n"                 
+                "    "ECMC_PLUGIN_SOURCE_OPTION_CMD"<source>    : Ec source variable (example: ec0.s1.mm.CH1_ARRAY).\n"
+                "    "ECMC_PLUGIN_RESULT_ELEMENTS_OPTION_CMD"<Result buffer size>        : Data points to collect, default = 4096.\n"
+                "    "ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD"<nexttime>   : Ec next sync time for source (example: ec0.s1.NEXTTIME)\n"
+                "    "ECMC_PLUGIN_TRIGG_OPTION_CMD"<trigger>   : Ec trigg time (example: ec0.s2.LATCH_POS).\n"
+                "    "ECMC_PLUGIN_ENABLE_OPTION_CMD"<1/0>   : Enable data acq, defaults to enabled.\n"
                 , 
   // Plugin version
   .version = ECMC_EXAMPLE_PLUGIN_VERSION,

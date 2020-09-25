@@ -19,6 +19,12 @@
 #include "inttypes.h"
 #include <string>
 
+typedef enum {
+    ECMC_SCOPE_STATE_INVALID,     /**Invalid. */
+    ECMC_SCOPE_STATE_WAIT_TRIGG,  /**Waiting for trigger. */
+    ECMC_SCOPE_STATE_COLLECT,     /**Filling buffer (waiting for data). */    
+} ecmcScopeState;
+
 class ecmcScope {
  public:
 
@@ -49,9 +55,12 @@ class ecmcScope {
   void                  addDataToBuffer(double data);
   bool                  sourceDataTypeSupported(ecmcEcDataType dt);
   void                  initAsyn();
-  
-  uint8_t*              rawDataBuffer_;
-  size_t                rawDataBufferBytes_;
+  uint64_t              timeDiff();
+
+  uint8_t*              resultDataBuffer_;
+  uint8_t*              sourceDataBuffer_;
+  size_t                resultDataBufferBytes_;
+  size_t                bytesInResultBuffer_;
   ecmcDataItem         *sourceDataItem_;
   ecmcDataItemInfo     *sourceDataItemInfo_;
   ecmcDataItem         *sourceDataNexttimeItem_;
@@ -65,15 +74,22 @@ class ecmcScope {
   int                   destructs_;
   int                   objectId_;           // Unique object id
   int                   triggOnce_;
-
+  
   uint64_t              triggTime_;
   uint64_t              oldTriggTime_;
+  uint64_t              sourceNexttime_;
+  uint64_t              sourceSampleRateNS_; // nanoseconds
+  ecmcScopeState        scopeState_;
+  uint64_t              ecmcSmapleTimeNS_;
+  size_t                sourceElementsPerSample_;
+  size_t                elementsInResultBuffer_;
+
   // Config options
   char*                 cfgDataSourceStr_;   // Config: data source string
   char*                 cfgDataNexttimeStr_; // Config: data source string
   char*                 cfgTriggStr_;        // Config: trigg string
   int                   cfgDbgMode_;         // Config: allow dbg printouts
-  size_t                cfgBufferSize_;      // Config: Data set size
+  size_t                cfgBufferElementCount_; // Config: Data set size
   int                   cfgEnable_;          // Config: Enable data acq./calc.
 
   // Asyn
