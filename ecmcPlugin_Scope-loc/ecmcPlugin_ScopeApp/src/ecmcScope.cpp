@@ -58,7 +58,7 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   sourceElementsPerSample_ = 0;
   scopeState_         = ECMC_SCOPE_STATE_INVALID;
   ecmcSmapleTimeNS_   = (uint64_t)getEcmcSampleTimeMS()*1E6;
-
+  
   // Asyn
   sourceParam_            = NULL;
 
@@ -77,8 +77,6 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   cfgEnable_        = 1;   // start enabled (enable over asyn)
   
   parseConfigStr(configStr); // Assigns all configs
-
-  SCOPE_DBG_PRINT("ecmcScop::ecmcScope()!!!");
   
   // Check valid buffer size
   if(cfgBufferElementCount_ <= 0) {
@@ -363,7 +361,7 @@ void ecmcScope::execute() {
     
     case ECMC_SCOPE_STATE_COLLECT:
       // Read source data    
-      if( sourceDataItem_->read((uint8_t*)&sourceDataBuffer_,sourceDataItemInfo_->dataSize)){
+      if( sourceDataItem_->read((uint8_t*)sourceDataBuffer_,sourceDataItemInfo_->dataSize)){
         throw std::runtime_error( "Failed read source data." );
       }
       
@@ -379,6 +377,7 @@ void ecmcScope::execute() {
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
         printf("Change state to ECMC_SCOPE_STATE_WAIT_TRIGG!!!\n");
         printf("Result Buffer full! SEND OVER ASYN!!!\n");
+        printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
       }
     
     break;
@@ -396,7 +395,8 @@ void ecmcScope::execute() {
  * If 32 bit registers then it can max be 2^32 ns between trigg and nexttime (approx 5s).
 */
 uint64_t ecmcScope::timeDiff() {  
-      printf("trigg=%" PRIu64 ", next=%" PRIu64 "\n",triggTime_,sourceNexttime_);
+
+  printf("trigg=%" PRIu64 ", next=%" PRIu64 "\n",triggTime_,sourceNexttime_);
 
   if(sourceTriggItemInfo_->dataBitCount<64 || sourceDataNexttimeItemInfo_->dataBitCount<=64) {
     // use only 32bit dc info
@@ -485,9 +485,9 @@ uint64_t ecmcScope::timeDiff() {
 // }
 
 void ecmcScope::printEcDataArray(uint8_t*       data, 
-                               size_t         size,
-                               ecmcEcDataType dt,
-                               int objId) {
+                                 size_t         size,
+                                 ecmcEcDataType dt,
+                                 int objId) {
   printf("Scope id: %d, data: ",objId);
 
   size_t dataElementSize = getEcDataTypeByteSize(dt);
