@@ -79,7 +79,7 @@ Other configurations that can be made:
   
 ### Source data (mandatory)
 
-The source data should normally be a ecmc memmap (example "ec0.s2.mm.CH1_ARRAY").
+The source data should normally be a ecmc memmap.
 
 The source is defined by the "SOURCE" configuration string:
 ``` 
@@ -88,7 +88,7 @@ SOURCE=ec0.s2.mm.CH1_ARRAY;
 
 ### Source data timestamp (mandatory)
 
-In order to know which source data elements that correspond to the trigger value, the oversampled ethercat slaves normally have a pdo that contains the value of the next dc sync time which is the dc timestamp of the next acquired data element (example ec0.s${SLAVE_NUM_AI}.NEXT_TIME;.  
+In order to know which source data elements that correspond to the trigger value, the oversampled ethercat slaves normally have a pdo that contains the value of the next dc sync time which is the dc timestamp of the next acquired data element.  
 
 The source timestamp is defined by the "SOURCE_NEXTTIME" configuration string:
 ``` 
@@ -98,7 +98,7 @@ This timestamp can be either in 32bit or 64bit format. If 32 bits then "NEXT_TIM
 
 ### Trigger (mandatory)
 
-The trigger should normally be a timestamped digital input, like EL1252, (example ec0.s3.CH1_LATCH_POS).
+The trigger should normally be a timestamped digital input, like EL1252.
 
 The trigger timestamp is defined by the "TRIGG" configuration string:
 ``` 
