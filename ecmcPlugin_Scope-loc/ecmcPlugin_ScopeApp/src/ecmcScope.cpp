@@ -19,6 +19,7 @@
 #define ECMC_PLUGIN_ASYN_RESULTDATA   "resultdata"
 #define ECMC_PLUGIN_ASYN_SCOPE_SOURCE "source"
 #define ECMC_PLUGIN_ASYN_SCOPE_TRIGG  "trigg"
+#define ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC "nexttime"
 
 #define SCOPE_DBG_PRINT(str)  \
 if(cfgDbgMode_) { \
@@ -60,6 +61,7 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   
   // Asyn
   sourceStrParam_ = NULL;
+  sourceNexttimeStrParam_ = NULL;
   triggStrParam_  = NULL;
   enbaleParam_    = NULL;
   resultParam_    = NULL;
@@ -290,19 +292,26 @@ bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
 
 void ecmcScope::execute() {
 
+  size_t bytesToCp = 0;
+  oldTriggTime_ = triggTime_;
+
   // Ensure ethercat bus is started
-  if(!cfgEnable_ || getEcmcEpicsIOCState() < 15) {
+  if(getEcmcEpicsIOCState() < 15) {
     bytesInResultBuffer_ = 0;
     scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
     return;
   }
 
-  size_t bytesToCp = 0;
-  oldTriggTime_ = triggTime_;
-
   // Read trigg data
   if( sourceTriggItem_->read((uint8_t*)&triggTime_,sourceTriggItemInfo_->dataElementSize)){
     throw std::runtime_error( "Failed read trigg time." );
+  }
+
+  // Ensure ethercat bus is started
+  if(!cfgEnable_) {
+    bytesInResultBuffer_ = 0;
+    scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
+    return;
   }
 
   switch(scopeState_) {
@@ -717,6 +726,26 @@ void ecmcScope::initAsyn() {
 
   triggStrParam_->setAllowWriteToEcmc(false);  // read only
   triggStrParam_->refreshParam(1); // read once into asyn param lib
+  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
+
+  // Add enable "plugin.scope%d.nexttime"
+  paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
+                          "." + ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC;
+
+  sourceNexttimeStrParam_ = ecmcAsynPort->addNewAvailParam(
+                                          paramName.c_str(),     // name
+                                          asynParamInt8Array,    // asyn type 
+                                          (uint8_t*)cfgDataNexttimeStr_,// pointer to data
+                                          strlen(cfgDataNexttimeStr_),  // size of data
+                                          ECMC_EC_U8,            // ecmc data type
+                                          0);                    // die if fail
+
+  if(!sourceNexttimeStrParam_) {     
+    throw std::runtime_error( "Failed create asyn param for trigger: " + paramName);
+  }
+
+  sourceNexttimeStrParam_->setAllowWriteToEcmc(false);  // read only
+  sourceNexttimeStrParam_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 }
 

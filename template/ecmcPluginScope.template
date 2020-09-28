@@ -21,6 +21,17 @@ record(waveform,"$(P)Plugin-Scope${INDEX}-TriggSource"){
   field(TSE,  "0")  
 }
 
+record(waveform,"$(P)Plugin-Scope${INDEX}-NextTimeSource"){
+  field(DESC, "Trigger source name")
+  field(PINI, "1")
+  field(DTYP, "asynInt8ArrayIn")
+  field(INP,  "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=1000)/TYPE=asynInt8ArrayIn/plugin.scope${INDEX}.nexttime?")
+  field(FTVL, "CHAR")
+  field(NELM, "1024")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")  
+}
+
 # result
 record(waveform,"$(P)Plugin-Scope${INDEX}-Data-Act"){
   info(asyn:FIFO, "1000")

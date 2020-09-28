@@ -97,6 +97,7 @@ class ecmcScope {
   ecmcAsynDataItem     *triggStrParam_;
   ecmcAsynDataItem     *enbaleParam_;
   ecmcAsynDataItem     *resultParam_;
+  ecmcAsynDataItem     *sourceNexttimeStrParam_;
 
   // Some generic utility functions
   static uint8_t        getUint8(uint8_t* data);
