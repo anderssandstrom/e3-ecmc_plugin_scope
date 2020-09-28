@@ -93,7 +93,10 @@ class ecmcScope {
   int                   cfgEnable_;          // Config: Enable data acq./calc.
 
   // Asyn
-  ecmcAsynDataItem     *sourceParam_;
+  ecmcAsynDataItem     *sourceStrParam_;
+  ecmcAsynDataItem     *triggStrParam_;
+  ecmcAsynDataItem     *enbaleParam_;
+  ecmcAsynDataItem     *resultParam_;
 
   // Some generic utility functions
   static uint8_t        getUint8(uint8_t* data);

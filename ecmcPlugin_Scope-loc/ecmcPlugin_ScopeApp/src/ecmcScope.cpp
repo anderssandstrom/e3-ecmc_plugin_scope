@@ -59,7 +59,10 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   ecmcSmapleTimeNS_   = (uint64_t)getEcmcSampleTimeMS()*1E6;
   
   // Asyn
-  sourceParam_            = NULL;
+  sourceStrParam_ = NULL;
+  triggStrParam_  = NULL;
+  enbaleParam_    = NULL;
+  resultParam_    = NULL;
 
   // ecmcDataItems
   sourceDataItem_         = NULL;
@@ -85,7 +88,7 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   // Allocate buffer use element size of 8 bytes to cover all cases
   resultDataBuffer_      = NULL;
   resultDataBufferBytes_ = 0;
-  //initAsyn();
+  
 }
 
 ecmcScope::~ecmcScope() {
@@ -367,7 +370,8 @@ void ecmcScope::execute() {
 
       }
       else {
-        bytesInResultBuffer_ = 0;
+        resultParam_->refreshParam(1); // read once into asyn param lib
+        bytesInResultBuffer_ = 0;        
         SCOPE_DBG_PRINT("Result Buffer full! SEND OVER ASYN!!!\n");
         if(cfgDbgMode_) {
           printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
@@ -405,6 +409,7 @@ void ecmcScope::execute() {
       }
      
       if(bytesInResultBuffer_ >= resultDataBufferBytes_) {
+        resultParam_->refreshParam(1); // read once into asyn param lib
         bytesInResultBuffer_ = 0;
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
         SCOPE_DBG_PRINT("Change state to ECMC_SCOPE_STATE_WAIT_TRIGG!!!\n");
@@ -638,7 +643,7 @@ void ecmcScope::initAsyn() {
     throw std::runtime_error( "ecmc data type not supported for param: " + paramName);
   }
 
-  sourceParam_ = ecmcAsynPort->addNewAvailParam(
+  resultParam_ = ecmcAsynPort->addNewAvailParam(
                                           paramName.c_str(),     // name
                                           asynType,              // asyn type 
                                           resultDataBuffer_,     // pointer to data
@@ -646,19 +651,19 @@ void ecmcScope::initAsyn() {
                                           sourceDataItemInfo_->dataType, // ecmc data type
                                           0);                    // die if fail
 
-  if(!sourceParam_) {     
+  if(!resultParam_) {     
     throw std::runtime_error( "Failed create asyn param for result: " + paramName);
   }
 
-  sourceParam_->setAllowWriteToEcmc(false);  // read only
-  sourceParam_->refreshParam(1); // read once into asyn param lib
+  resultParam_->setAllowWriteToEcmc(false);  // read only
+  resultParam_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 
   // Add enable "plugin.scope%d.enable"
   paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
                           "." + ECMC_PLUGIN_ASYN_ENABLE;
 
-  sourceParam_ = ecmcAsynPort->addNewAvailParam(
+  enbaleParam_ = ecmcAsynPort->addNewAvailParam(
                                           paramName.c_str(),     // name
                                           asynParamInt32,        // asyn type 
                                           (uint8_t*)&cfgEnable_, // pointer to data
@@ -666,19 +671,19 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_S32,           // ecmc data type
                                           0);                    // die if fail
 
-  if(!sourceParam_) {     
+  if(!enbaleParam_) {     
     throw std::runtime_error( "Failed create asyn param for enable: " + paramName);
   }
 
-  sourceParam_->setAllowWriteToEcmc(true);
-  sourceParam_->refreshParam(1); // read once into asyn param lib
+  enbaleParam_->setAllowWriteToEcmc(true);
+  enbaleParam_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 
   // Add enable "plugin.scope%d.source"
   paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
                           "." + ECMC_PLUGIN_ASYN_SCOPE_SOURCE;
 
-  sourceParam_ = ecmcAsynPort->addNewAvailParam(
+  sourceStrParam_ = ecmcAsynPort->addNewAvailParam(
                                           paramName.c_str(),     // name
                                           asynParamInt8Array,    // asyn type 
                                           (uint8_t*)cfgDataSourceStr_,// pointer to data
@@ -686,19 +691,19 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_U8,            // ecmc data type
                                           0);                    // die if fail
 
-  if(!sourceParam_) {     
+  if(!sourceStrParam_) {     
     throw std::runtime_error( "Failed create asyn param for source: " + paramName);
   }
 
-  sourceParam_->setAllowWriteToEcmc(false);  // read only
-  sourceParam_->refreshParam(1); // read once into asyn param lib
+  sourceStrParam_->setAllowWriteToEcmc(false);  // read only
+  sourceStrParam_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 
   // Add enable "plugin.scope%d.trigg"
   paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
                           "." + ECMC_PLUGIN_ASYN_SCOPE_TRIGG;
 
-  sourceParam_ = ecmcAsynPort->addNewAvailParam(
+  triggStrParam_ = ecmcAsynPort->addNewAvailParam(
                                           paramName.c_str(),     // name
                                           asynParamInt8Array,    // asyn type 
                                           (uint8_t*)cfgTriggStr_,// pointer to data
@@ -706,12 +711,12 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_U8,            // ecmc data type
                                           0);                    // die if fail
 
-  if(!sourceParam_) {     
+  if(!triggStrParam_) {     
     throw std::runtime_error( "Failed create asyn param for trigger: " + paramName);
   }
 
-  sourceParam_->setAllowWriteToEcmc(false);  // read only
-  sourceParam_->refreshParam(1); // read once into asyn param lib
+  triggStrParam_->setAllowWriteToEcmc(false);  // read only
+  triggStrParam_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 }
 
