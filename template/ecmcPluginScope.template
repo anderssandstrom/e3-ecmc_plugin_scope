@@ -1,0 +1,55 @@
+# Data source
+record(waveform,"$(P)Plugin-Scope${INDEX}-DataSource"){
+  field(DESC, "Data source name")
+  field(PINI, "1")
+  field(DTYP, "asynInt8ArrayIn")
+  field(INP,  "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=1000)/TYPE=asynInt8ArrayIn/plugin.scope${INDEX}.source?")
+  field(FTVL, "CHAR")
+  field(NELM, "1024")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")  
+}
+
+record(waveform,"$(P)Plugin-Scope${INDEX}-TriggSource"){
+  field(DESC, "Trigger source name")
+  field(PINI, "1")
+  field(DTYP, "asynInt8ArrayIn")
+  field(INP,  "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=1000)/TYPE=asynInt8ArrayIn/plugin.scope${INDEX}.trigg?")
+  field(FTVL, "CHAR")
+  field(NELM, "1024")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")  
+}
+
+# result
+record(waveform,"$(P)Plugin-Scope${INDEX}-Data-Act"){
+  info(asyn:FIFO, "1000")
+  field(DESC, "Result data")
+  field(PINI, "1")
+  field(DTYP, "${RESULT_DTYP}")
+  field(INP,  "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=-1)/TYPE=${RESULT_DTYP}/plugin.scope${INDEX}.resultdata?")
+  field(FTVL, "${RESULT_FTVL}")
+  field(NELM, "${RESULT_NELM}")
+  field(SCAN, "I/O Intr")
+  field(TSE,  "0")
+}
+
+record(bo,"$(P)Plugin-Scope${INDEX}-Enable"){
+  field(DESC, "FFT Enable")
+  field(DTYP,"asynInt32")
+  field(OUT, "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=1000)/TYPE=asynInt32/plugin.scope${INDEX}.enable=")
+  field(ZNAM,"FALSE")
+  field(ONAM,"TRUE")
+  field(DOL, "0")
+  field(VAL, "0")
+}
+
+#record(bo,"$(P)Plugin-Scope${INDEX}-Trigg"){
+#  field(DESC, "FFT Trigg measurement")
+#  field(DTYP,"asynInt32")
+#  field(OUT, "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=1000)/TYPE=asynInt32/plugin.scope${INDEX}.trigg")
+#  field(ZNAM,"FALSE")
+#  field(ONAM,"TRUE")
+#  field(DOL, "0")
+#  field(VAL, "0")
+#}
