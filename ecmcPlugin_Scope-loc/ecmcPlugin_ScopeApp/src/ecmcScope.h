@@ -58,7 +58,7 @@ class ecmcScope {
   uint64_t              timeDiff();
 
   uint8_t*              resultDataBuffer_;
-  uint8_t*              sourceDataBuffer_;
+  uint8_t*              lastScanSourceDataBuffer_;
   size_t                resultDataBufferBytes_;
   size_t                bytesInResultBuffer_;
   ecmcDataItem         *sourceDataItem_;
@@ -69,11 +69,9 @@ class ecmcScope {
   ecmcDataItemInfo     *sourceTriggItemInfo_;
   
   int                   dataSourceLinked_;   // To avoid link several times
-  // ecmc callback handle for use when deregister at unload
-  //int                   callbackHandle_;
-  int                   destructs_;
   int                   objectId_;           // Unique object id
   int                   triggOnce_;
+  int                   firstTrigg_;
   
   uint64_t              triggTime_;
   uint64_t              oldTriggTime_;
