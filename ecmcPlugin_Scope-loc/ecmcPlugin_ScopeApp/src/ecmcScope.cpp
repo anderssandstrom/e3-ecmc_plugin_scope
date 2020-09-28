@@ -212,8 +212,11 @@ void ecmcScope::connectToDataSources() {
 
   // Allocate buffer for result
   resultDataBuffer_      = new uint8_t[cfgBufferElementCount_ * sourceDataItemInfo_->dataElementSize];
+  memset(&resultDataBuffer_[0],0,cfgBufferElementCount_ * sourceDataItemInfo_->dataElementSize);
   resultDataBufferBytes_ = cfgBufferElementCount_ * sourceDataItemInfo_->dataElementSize;
-  sourceDataBuffer_      = new uint8_t[sourceDataItemInfo_->dataSize];
+  // Allow to cycles of storage/fifo
+  sourceDataBuffer_      = new uint8_t[sourceDataItemInfo_->dataSize*2];
+  memset(&sourceDataBuffer_[0],0,sourceDataItemInfo_->dataSize*2);
   sourceElementsPerSample_ = sourceDataItemInfo_->dataSize / sourceDataItemInfo_->dataElementSize;
   
   printf("sourceDataItemInfo_->dataSize=%zu, sourceDataItemInfo_->dataElementSize=%zu\n",sourceDataItemInfo_->dataSize,sourceDataItemInfo_->dataElementSize);
@@ -296,6 +299,20 @@ void ecmcScope::execute() {
     return;
   }
 
+  // Read trigg data
+  if( sourceTriggItem_->read((uint8_t*)&triggTime_,sourceTriggItemInfo_->dataElementSize)){
+    throw std::runtime_error( "Failed read trigg time." );
+  }
+
+  //move samples forward in fifo (move last part of array first, newest value last)
+  memmove(&sourceDataBuffer_[0],&sourceDataBuffer_[sourceDataItemInfo_->dataSize],sourceDataItemInfo_->dataSize);
+
+  // Read source data
+  if( sourceDataItem_->read((uint8_t*)&sourceDataBuffer_[sourceDataItemInfo_->dataSize],sourceDataItemInfo_->dataSize)){
+    throw std::runtime_error( "Failed source data." );
+  }
+
+
   switch(scopeState_) {
     case ECMC_SCOPE_STATE_INVALID:
       SCOPE_DBG_PRINT("ecmcScope::execute():ECMC_SCOPE_STATE_INVALID!!!");
@@ -304,18 +321,10 @@ void ecmcScope::execute() {
     break;
     
     case ECMC_SCOPE_STATE_WAIT_TRIGG:
-    // Read trigg data
-    if( sourceTriggItem_->read((uint8_t*)&triggTime_,sourceTriggItemInfo_->dataElementSize)){
-      throw std::runtime_error( "Failed read trigg time." );
-    }
 
     // New trigger then collect data!!
     if(oldTriggTime_ != triggTime_ ) {
       printf("New trigger!!\n");      
-      // Read source data    
-      if( sourceDataItem_->read((uint8_t*)sourceDataBuffer_,sourceDataItemInfo_->dataSize)){
-        throw std::runtime_error( "Failed source data." );
-      }
       
       if( sourceDataNexttimeItem_->read((uint8_t*)&sourceNexttime_,sourceDataNexttimeItemInfo_->dataElementSize)){
         throw std::runtime_error( "Failed read next time." );
@@ -326,10 +335,9 @@ void ecmcScope::execute() {
       // calculate how many samples ago trigger occured     
       size_t samplesSinceLastTrigg = timeDiff() / sourceSampleRateNS_;
       
-      printf("samplesSinceLastTrigg = %zu, timediff = %" PRIu64 ". sourcerate=%" PRIu64 "\n", samplesSinceLastTrigg, timeDiff(), sourceSampleRateNS_);
-
-      // Copy the the samples to result buffer
-      if(samplesSinceLastTrigg <= 0 || samplesSinceLastTrigg > sourceElementsPerSample_) {
+      // Copy the the samples to result buffer (buffer allows to ethecat scans with value(s))
+      if(samplesSinceLastTrigg <= 0 || samplesSinceLastTrigg > sourceElementsPerSample_ * 2) {
+        printf("WARNING: INVALID TRIGGER TIME..");
         return;
         //throw std::runtime_error( "Invalid trigg time (not within current sample)." );
       }
@@ -342,7 +350,7 @@ void ecmcScope::execute() {
 
       printf("bytesToCp = %lu\n", bytesToCp);
 
-      memcpy(&resultDataBuffer_[0],&sourceDataBuffer_[sourceElementsPerSample_-samplesSinceLastTrigg],bytesToCp);
+      memcpy( &resultDataBuffer_[0], &sourceDataBuffer_[sourceElementsPerSample_*2-samplesSinceLastTrigg], bytesToCp);
       bytesInResultBuffer_ = bytesToCp;
       
       if(bytesInResultBuffer_ < resultDataBufferBytes_) {
@@ -360,16 +368,25 @@ void ecmcScope::execute() {
     break;
     
     case ECMC_SCOPE_STATE_COLLECT:
-      // Read source data    
-      if( sourceDataItem_->read((uint8_t*)sourceDataBuffer_,sourceDataItemInfo_->dataSize)){
-        throw std::runtime_error( "Failed read source data." );
+
+      if (oldTriggTime_ != triggTime_) {
+        printf("WARNING: LATCH DISGARDED SINCE STATE==ECMC_SCOPE_STATE_COLLECT.\n");
+        oldTriggTime_ = triggTime_;
       }
+
+      // Read source data
+      //if( sourceDataItem_->read((uint8_t*)sourceDataBuffer_,sourceDataItemInfo_->dataSize)){
+      //  throw std::runtime_error( "Failed read source data." );
+      //}
       
       bytesToCp = sourceDataItemInfo_->dataSize;
       if(bytesToCp >  resultDataBufferBytes_ - bytesInResultBuffer_) {
         bytesToCp = resultDataBufferBytes_ - bytesInResultBuffer_;
       }
-      memcpy(&resultDataBuffer_[bytesInResultBuffer_],&sourceDataBuffer_[0],bytesToCp);
+
+      // Newest data in end of source array which holds two sampes of ethercat data (example 2*100 Elements).
+      // So, last scan of source data is in sourceDataBuffer_[sourceDataItemInfo_->dataSize..2 * sourceDataItemInfo_->dataSize]
+      memcpy(&resultDataBuffer_[bytesInResultBuffer_],&sourceDataBuffer_[sourceDataItemInfo_->dataSize],bytesToCp);
       bytesInResultBuffer_ = bytesInResultBuffer_+ bytesToCp;
       
       if(bytesInResultBuffer_ == resultDataBufferBytes_) {
@@ -377,7 +394,8 @@ void ecmcScope::execute() {
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
         printf("Change state to ECMC_SCOPE_STATE_WAIT_TRIGG!!!\n");
         printf("Result Buffer full! SEND OVER ASYN!!!\n");
-        //printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
+
+        printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
       }
     
     break;
@@ -493,43 +511,49 @@ void ecmcScope::printEcDataArray(uint8_t*       data,
 
   uint8_t *pData = data;
   for(unsigned int i = 0; i < size / dataElementSize; ++i) {    
+    if(i % 10 == 0) {
+      printf("\n");
+    } else {
+      printf(", ");
+    }
     switch(dt) {
       case ECMC_EC_U8:        
-        printf("%hhu\n",getUint8(pData));
+        printf("%hhu",getUint8(pData));
         break;
       case ECMC_EC_S8:
-        printf("%hhd\n",getInt8(pData));
+        printf("%hhd",getInt8(pData));
         break;
       case ECMC_EC_U16:
-        printf("%hu\n",getUint16(pData));
+        printf("%hu",getUint16(pData));
         break;
       case ECMC_EC_S16:
-        printf("%hd\n",getInt16(pData));
+        printf("%hd",getInt16(pData));
         break;
       case ECMC_EC_U32:
-        printf("%u\n",getUint32(pData));
+        printf("%u",getUint32(pData));
         break;
       case ECMC_EC_S32:
-        printf("%d\n",getInt32(pData));
+        printf("%d",getInt32(pData));
         break;
       case ECMC_EC_U64:
-        printf("%" PRIu64 "\n",getInt64(pData));
+        printf("%" PRIu64 "",getInt64(pData));
         break;
       case ECMC_EC_S64:
-        printf("%" PRId64 "\n",getInt64(pData));
+        printf("%" PRId64 "",getInt64(pData));
         break;
       case ECMC_EC_F32:
-        printf("%f\n",getFloat32(pData));
+        printf("%f",getFloat32(pData));
         break;
       case ECMC_EC_F64:
-        printf("%lf\n",getFloat64(pData));
+        printf("%lf",getFloat64(pData));
         break;
       default:
         break;
     }
-    
+
     pData += dataElementSize;
   }
+  printf("\n");
 }
 
 uint8_t   ecmcScope::getUint8(uint8_t* data) {
