@@ -32,7 +32,7 @@ A plugin is loaded by the ecmccfg command loadPlugin:
 https://github.com/icshwi/ecmccfg/blob/master/scripts/loadPlugin.cmd
 
 Example:
-``` 
+```
 epicsEnvSet(RESULT_NELM, 1024)
 epicsEnvSet(ECMC_PLUGIN_FILNAME,"/home/pi/sources/e3-ecmcPlugin_Scope/ecmcPlugin_Scope-loc/O.7.0.4_linux-arm/libecmcPlugin_Scope.so")
 epicsEnvSet(ECMC_PLUGIN_CONFIG,"SOURCE=ec0.s${SLAVE_NUM_AI}.mm.CH1_ARRAY;DBG_PRINT=1;TRIGG=ec0.s${SLAVE_NUM_TRIGG}.CH1_LATCH_POS;SOURCE_NEXTTIME=ec0.s${SLAVE_NUM_AI}.NEXT_TIME;RESULT_ELEMENTS=${RESULT_NELM};")
@@ -41,7 +41,8 @@ epicsEnvUnset(ECMC_PLUGIN_FILNAME)
 epicsEnvUnset(ECMC_PLUGIN_CONFIG)
 dbLoadRecords("../template/ecmcPluginScope.template","P=$(IOC):,PORT=${ECMC_ASYN_PORT},INDEX=0,RESULT_NELM=${RESULT_NELM},RESULT_DTYP=asynInt16ArrayIn,RESULT_FTVL=SHORT")
 epicsEnvUnset(RESULT_NELM, 1024)
-``
+```
+
 This plugin supports multiple loading. For each load of the plugin a new Scope object will be created. In order to access these plugins, from plc:s or EPICS records, they can be accessed by an index. The first Scope plugin will have index 0. The next loaded Scope plugin will have index 1...
 
 Note: If another plugin is loaded in between the loading of Scope plugins, it will have no affect on these Scope indexes (so the Scope index is _not_ the same as plugin index).
