@@ -96,7 +96,7 @@ SOURCE_NEXTTIME=ec0.s2.NEXT_TIME;
 ``` 
 This timestamp can be either in 32bit or 64bit format. If 32 bits then "NEXT_TIME" is always considered to be later than the trigger timestamp.
 
-### Source data timestamp (mandatory)
+### Trigger (mandatory)
 
 The trigger should normally be a timestamped digital input, like EL1252, (example ec0.s3.CH1_LATCH_POS).
 
