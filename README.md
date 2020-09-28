@@ -13,7 +13,7 @@ https://github.com/paulscherrerinstitute/ecmccfg (ot local ess fork https://gith
 
 # Introduction
 
-The main functionality of this plugin is to simulate a simple triggered scope for use with ethercat data from oversampled slaves and triggers from timestamped slaves like:
+The main functionality of this plugin is triggerd sampling of ethercat data from oversampled and timestamped ethercat slaves, like:
 
 Data:
 
@@ -22,6 +22,8 @@ Data:
 * EL3742
 
 * EL5101-0011
+
+* ELM3604
 
 * ....
 
