@@ -13,7 +13,19 @@ https://github.com/paulscherrerinstitute/ecmccfg (ot local ess fork https://gith
 
 # Introduction
 
-The main functionality of this plugin is to simulate a simple triggered scope mainly for use with ethercat data from oversampled slaves.
+The main functionality of this plugin is to simulate a simple triggered scope for use with ethercat data from oversampled slaves and triggers from timestamped slaves like:
+
+Data:
+
+* EL3702
+
+* EL3742
+
+Trigger:
+
+* EL1252
+
+* EL1252-0050
 
 ## Loading of Scope plugin in ecmc: 
 A plugin is loaded by the ecmccfg command loadPlugin:
@@ -73,6 +85,7 @@ The source timestamp is defined by the "SOURCE_NEXTTIME" configuration string:
 ``` 
 SOURCE_NEXTTIME=ec0.s2.NEXT_TIME;
 ``` 
+This timestamp can be either in 32bit or 64bit format. If 32 bits then "NEXT_TIME" is always considered to be later than the trigger timestamp.
 
 ### Source data timestamp (mandatory)
 
@@ -82,6 +95,7 @@ The trigger timestamp is defined by the "TRIGG" configuration string:
 ``` 
 TRIGG=ec0.s5.CH1_LATCH_POS;
 ``` 
+This timestamp can be either in 32bit or 64bit format. If 32 bits then "NEXT_TIME" is always considered to be later than the trigger timestamp.
 
 ### Data elements to collect (optional)
 
