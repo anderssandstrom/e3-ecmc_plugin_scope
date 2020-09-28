@@ -56,6 +56,8 @@ class ecmcScope {
   bool                  sourceDataTypeSupported(ecmcEcDataType dt);
   void                  initAsyn();
   uint64_t              timeDiff();
+  asynParamType         getResultAsynDTFromEcDT(ecmcEcDataType ecDT);
+
 
   uint8_t*              resultDataBuffer_;
   uint8_t*              lastScanSourceDataBuffer_;
