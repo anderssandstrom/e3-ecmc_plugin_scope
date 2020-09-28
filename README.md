@@ -21,6 +21,10 @@ Data:
 
 * EL3742
 
+* EL5101-0011
+
+* ....
+
 Trigger:
 
 * EL1252
@@ -28,6 +32,9 @@ Trigger:
 * EL1252-0050
 
 ## Loading of Scope plugin in ecmc: 
+
+NOTE: Do not use "require" to load plugin.
+
 A plugin is loaded by the ecmccfg command loadPlugin:
 https://github.com/icshwi/ecmccfg/blob/master/scripts/loadPlugin.cmd
 
@@ -75,7 +82,6 @@ The source data should normally be a ecmc memmap (example "ec0.s2.mm.CH1_ARRAY")
 The source is defined by the "SOURCE" configuration string:
 ``` 
 SOURCE=ec0.s2.mm.CH1_ARRAY;
-
 ``` 
 
 ### Source data timestamp (mandatory)
@@ -102,7 +108,7 @@ This timestamp can be either in 32bit or 64bit format. If 32 bits then "NEXT_TIM
 
 The number of values to be collected after the trigger is defined by setting the option "RESULT_ELEMENTS" in the configurations string. The default value is 1024 data elements of the same type as the choosen source.
 ``` 
-RESULT_ELEMENTS=2048;")
+RESULT_ELEMENTS=2048;
 ``` 
 
 ### Debug printouts (optional)
@@ -150,7 +156,7 @@ An example script can be found in the iocsh directory of this repo.
 
 ```
 Plugin info: 
-  Index                = 1
+  Index                = 0
   Name                 = ecmcPlugin_Scope
   Description          = Scope plugin for use with ecmc.
   Option description   = 
@@ -175,11 +181,6 @@ Plugin info:
   Destruct func        = @0xb5026428
   dlhandle             = @0xa228d8
   Plc functions:
-    funcs[00]:
-      Name       = "scope_clear(arg0);"
-      Desc       = double scope_clear(index) : Clear/reset scope[index].
-      Arg count  = 1
-      func       = @0xb5026454
   Plc constants:
 
 ```
