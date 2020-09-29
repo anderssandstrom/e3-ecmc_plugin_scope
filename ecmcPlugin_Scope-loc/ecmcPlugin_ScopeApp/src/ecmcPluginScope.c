@@ -128,7 +128,7 @@ struct ecmcPluginData pluginDataDef = {
   .funcs[0] =
       { /*----fft_clear----*/
         // Function name (this is the name you use in ecmc plc-code)
-        .funcName = "scope_clear",
+        .funcName = "scope_enable",
         // Function description
         .funcDesc = "scope_enable(index,enable) : Enable/disaable scope[index].",
         /**
