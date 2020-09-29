@@ -195,7 +195,7 @@ The example is based on:
 * EL3702 for acquiring analog data with a oversampling factor of 100 (100kHz sampling rate)
 * EL1252 for timestamped trigger
 
-The below image shows triggered acquisition in 10Hz of a 100Hz sinus 1Vpp. For each trigger, 500 samples are acquired in 100kHz sample rate and pushed to epics as waveforms (in 10Hz with NELM 500).
+The below image shows triggered acquisition in 10Hz of a 100Hz sinus 1Vpp. For each trigger, 500 samples are acquired in 100kHz sample rate and pushed to epics as waveforms (in 10Hz with NELM 500). In total the image shows data from  17 triggers after each other.
 
 ![Example](docs/example.png)
 
