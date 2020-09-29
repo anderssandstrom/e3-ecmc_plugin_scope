@@ -106,10 +106,16 @@ int triggScope(int scopeIndex) {
 }
 
 int executeScopes() {
-   for(std::vector<ecmcScope*>::iterator pscope = scopes.begin(); pscope != scopes.end(); ++pscope) {
-    if(*pscope) {
-      (*pscope)->execute();
-    }
-  } 
+  try {
+    for(std::vector<ecmcScope*>::iterator pscope = scopes.begin(); pscope != scopes.end(); ++pscope) {
+      if(*pscope) {
+        (*pscope)->execute();
+      }
+     }
+  }
+  catch(std::exception& e) {
+    printf("Exception: %s.\n",e.what());
+    return ECMC_PLUGIN_SCOPE_ERROR_CODE;
+  }  
   return 0;
 }

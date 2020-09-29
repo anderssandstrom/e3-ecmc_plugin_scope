@@ -14,19 +14,19 @@
 // Needed to get headers in ecmc right...
 #define ECMC_IS_PLUGIN
 
-#define ECMC_PLUGIN_ASYN_PREFIX       "plugin.scope"
-#define ECMC_PLUGIN_ASYN_ENABLE       "enable"
-#define ECMC_PLUGIN_ASYN_RESULTDATA   "resultdata"
-#define ECMC_PLUGIN_ASYN_SCOPE_SOURCE "source"
-#define ECMC_PLUGIN_ASYN_SCOPE_TRIGG  "trigg"
+#define ECMC_PLUGIN_ASYN_PREFIX          "plugin.scope"
+#define ECMC_PLUGIN_ASYN_ENABLE          "enable"
+#define ECMC_PLUGIN_ASYN_RESULTDATA      "resultdata"
+#define ECMC_PLUGIN_ASYN_SCOPE_SOURCE    "source"
+#define ECMC_PLUGIN_ASYN_SCOPE_TRIGG     "trigg"
 #define ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC "nexttime"
-#define ECMC_PLUGIN_ASYN_MISSED       "missed"
-#define ECMC_PLUGIN_ASYN_TRIGG_COUNT  "count"
+#define ECMC_PLUGIN_ASYN_MISSED          "missed"
+#define ECMC_PLUGIN_ASYN_TRIGG_COUNT     "count"
 
 #define SCOPE_DBG_PRINT(str)  \
-if(cfgDbgMode_) { \
-    printf(str);  \
-}                 \
+if(cfgDbgMode_) {             \
+    printf(str);              \
+}                             \
 
 #define ECMC_MAX_32BIT 0xFFFFFFFF
 
@@ -43,61 +43,62 @@ if(cfgDbgMode_) { \
 */
 ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several is created)
                      char* configStr){
-  cfgDataSourceStr_   = NULL;
-  cfgDataNexttimeStr_ = NULL;
-  cfgTriggStr_        = NULL;
-  resultDataBuffer_   = NULL;  
-  lastScanSourceDataBuffer_   = NULL;
-  missedTriggs_       = 0;
-  triggerCounter_     = 0;
-  objectId_           = scopeIndex;  
-  triggOnce_          = 0;
-  dataSourceLinked_   = 0;
-  resultDataBufferBytes_ = 0;
-  bytesInResultBuffer_ = 0;
-  oldTriggTime_       = 0;
-  triggTime_          = 0;
-  sourceNexttime_     = 0;
-  sourceSampleRateNS_ = 0;
-  sourceElementsPerSample_ = 0;
-  firstTrigg_          = 1; // Avoid first trigger (0 timestamp..)
-  scopeState_         = ECMC_SCOPE_STATE_INVALID;
-  ecmcSmapleTimeNS_   = (uint64_t)getEcmcSampleTimeMS()*1E6;
+  SCOPE_DBG_PRINT("ecmcScope::ecmcScope()");
+  cfgDataSourceStr_         = NULL;
+  cfgDataNexttimeStr_       = NULL;
+  cfgTriggStr_              = NULL;
+  resultDataBuffer_         = NULL;  
+  lastScanSourceDataBuffer_ = NULL;
+  missedTriggs_             = 0;
+  triggerCounter_           = 0;
+  objectId_                 = scopeIndex;  
+  triggOnce_                = 0;
+  dataSourceLinked_         = 0;
+  resultDataBufferBytes_    = 0;
+  bytesInResultBuffer_      = 0;
+  oldTriggTime_             = 0;
+  triggTime_                = 0;
+  sourceNexttime_           = 0;
+  sourceSampleRateNS_       = 0;
+  sourceElementsPerSample_  = 0;
+  firstTrigg_               = 1; // Avoid first trigger (0 timestamp..)
+  scopeState_               = ECMC_SCOPE_STATE_INVALID;
+  ecmcSmapleTimeNS_         = (uint64_t)getEcmcSampleTimeMS()*1E6;
   
   // Asyn
-  sourceStrParam_ = NULL;
-  sourceNexttimeStrParam_ = NULL;
-  triggStrParam_  = NULL;
-  enbaleParam_    = NULL;
-  resultParam_    = NULL;
-  asynMissedTriggs_ = NULL;
-  asynTriggerCounter_ = NULL;
+  sourceStrParam_           = NULL;
+  sourceNexttimeStrParam_   = NULL;
+  triggStrParam_            = NULL;
+  enbaleParam_              = NULL;
+  resultParam_              = NULL;
+  asynMissedTriggs_         = NULL;
+  asynTriggerCounter_       = NULL;
 
   // ecmcDataItems
-  sourceDataItem_         = NULL;
-  sourceDataNexttimeItem_ = NULL;
-  sourceTriggItem_        = NULL;
+  sourceDataItem_           = NULL;
+  sourceDataNexttimeItem_   = NULL;
+  sourceTriggItem_          = NULL;
 
-  sourceDataItemInfo_     = NULL;
+  sourceDataItemInfo_       = NULL;
   sourceDataNexttimeItemInfo_ = NULL;
-  sourceTriggItemInfo_    = NULL;
+  sourceTriggItemInfo_      = NULL;
   
   // Config defaults
-  cfgDbgMode_       = 0;
+  cfgDbgMode_               = 0;
   cfgBufferElementCount_    = ECMC_PLUGIN_DEFAULT_BUFFER_SIZE;
-  cfgEnable_        = 1;   // start enabled (enable over asyn)
+  cfgEnable_                = 1;   // start enabled (enable over asyn)
   
   parseConfigStr(configStr); // Assigns all configs
   
   // Check valid buffer size
   if(cfgBufferElementCount_ <= 0) {
-    throw std::out_of_range("Buffer Size must be > 0.");
+    SCOPE_DBG_PRINT("ERROR: Configuration buffer size must be > 0.");
+    throw std::out_of_range("ERROR: Configuration Buffer Size must be > 0.");
   }
 
-  // Allocate buffer use element size of 8 bytes to cover all cases
-  resultDataBuffer_      = NULL;
-  resultDataBufferBytes_ = 0;
-  
+  // Allocate buffers first at enter RT (since datatype is unknown here)
+  resultDataBuffer_         = NULL;
+  resultDataBufferBytes_    = 0;
 }
 
 ecmcScope::~ecmcScope() {
@@ -123,7 +124,7 @@ ecmcScope::~ecmcScope() {
 }
 
 void ecmcScope::parseConfigStr(char *configStr) {
-  SCOPE_DBG_PRINT("ecmcScope::parseConfigStr()!!!");
+  SCOPE_DBG_PRINT("ecmcScope::parseConfigStr()");
   // check config parameters
   if (configStr && configStr[0]) {    
     char *pOptions = strdup(configStr);
@@ -174,7 +175,7 @@ void ecmcScope::parseConfigStr(char *configStr) {
       }
 
 
-      // ECMC_PLUGIN_MODE_OPTION_CMD CONT/TRIGG
+    //   ECMC_PLUGIN_MODE_OPTION_CMD CONT/TRIGG
     //   else if (!strncmp(pThisOption, ECMC_PLUGIN_MODE_OPTION_CMD, strlen(ECMC_PLUGIN_MODE_OPTION_CMD))) {
     //     pThisOption += strlen(ECMC_PLUGIN_MODE_OPTION_CMD);
     //     if(!strncmp(pThisOption, ECMC_PLUGIN_MODE_CONT_OPTION,strlen(ECMC_PLUGIN_MODE_CONT_OPTION))){
@@ -192,19 +193,22 @@ void ecmcScope::parseConfigStr(char *configStr) {
 
   // Data source must be defined...
   if(!cfgDataSourceStr_) { 
-    throw std::invalid_argument( "Data source not defined.");
+    SCOPE_DBG_PRINT("ERROR: Configuration Data source not defined.\n");
+    throw std::invalid_argument( "ERROR: Data source not defined.");
   }
   if(!cfgTriggStr_) { 
-    throw std::invalid_argument( "Trigger not defined.");
+    SCOPE_DBG_PRINT("ERROR: Configuration Trigger not defined.\n");
+    throw std::invalid_argument( "ERROR: Configuration Trigger not defined.");
   }
   if(!cfgDataNexttimeStr_) { 
-    throw std::invalid_argument( "Source Nexttime not defined.");
+    SCOPE_DBG_PRINT("ERROR: Configuration  Nexttime not defined.\n");
+    throw std::invalid_argument( "ERROR: Configuration Nexttime not defined.");
   }
 }
 
 void ecmcScope::connectToDataSources() {
-  SCOPE_DBG_PRINT("ecmcScope::connectToDataSources()!!!");
-  /* Check if already linked (one call to enterRT per loaded Scope lib (Scope object))
+  SCOPE_DBG_PRINT("ecmcScope::connectToDataSources()");
+  /* Check if already linked (one call to connectToDataSources (enterRT) per loaded Scope lib (Scope object))
       But link should only happen once!!*/
   if( dataSourceLinked_ ) {
     return;
@@ -213,12 +217,14 @@ void ecmcScope::connectToDataSources() {
   // Get source dataItem
   sourceDataItem_        = (ecmcDataItem*) getEcmcDataItem(cfgDataSourceStr_);
   if(!sourceDataItem_) {
-    throw std::runtime_error( "Source dataitem NULL." );
+    SCOPE_DBG_PRINT("ERROR: Source dataitem NULL.\n");
+    throw std::runtime_error( "ERROR: Source dataitem NULL." );
   }
   sourceDataItemInfo_ = sourceDataItem_->getDataItemInfo();
 
   if(!sourceDataItemInfo_) {
-    throw std::runtime_error( "Source dataitem info NULL." );
+    SCOPE_DBG_PRINT("ERROR: Source dataitem info NULL.\n");
+    throw std::runtime_error( "ERROR: Source dataitem info NULL." );
   }
 
   // Allocate buffer for result
@@ -229,39 +235,42 @@ void ecmcScope::connectToDataSources() {
   lastScanSourceDataBuffer_      = new uint8_t[sourceDataItemInfo_->dataSize];
   memset(&lastScanSourceDataBuffer_[0],0,sourceDataItemInfo_->dataSize);
   sourceElementsPerSample_ = sourceDataItemInfo_->dataSize / sourceDataItemInfo_->dataElementSize;
-  
-  printf("sourceDataItemInfo_->dataSize=%zu, sourceDataItemInfo_->dataElementSize=%zu\n",sourceDataItemInfo_->dataSize,sourceDataItemInfo_->dataElementSize);
   sourceSampleRateNS_    = ecmcSmapleTimeNS_ / sourceElementsPerSample_;
-  printf("sourceSampleRateNS_=%" PRIu64 "ecmcSmapleTimeNS_=%" PRIu64 "sourceElementsPerSample_ =%zu\n",sourceSampleRateNS_ ,ecmcSmapleTimeNS_ ,sourceElementsPerSample_);
-
+  
   // Get source nexttime dataItem
   sourceDataNexttimeItem_        = (ecmcDataItem*) getEcmcDataItem(cfgDataNexttimeStr_);
   if(!sourceDataNexttimeItem_) {
-    throw std::runtime_error( "Source nexttime dataitem NULL." );
+    SCOPE_DBG_PRINT("ERROR: Source nexttime dataitem NULL.\n");
+    throw std::runtime_error( "ERROR: Source nexttime dataitem NULL." );
   }
   sourceDataNexttimeItemInfo_ = sourceDataNexttimeItem_->getDataItemInfo();
   
   if(!sourceDataNexttimeItemInfo_) {
-    throw std::runtime_error( "Source nexttime dataitem info NULL." );
+    SCOPE_DBG_PRINT("ERROR: Source nexttime dataitem info NULL.\n");
+    throw std::runtime_error( "ERROR: Source nexttime dataitem info NULL." );
   }
 
   // Get trigg dataItem
   sourceTriggItem_        = (ecmcDataItem*) getEcmcDataItem(cfgTriggStr_);
   if(!sourceTriggItem_) {
-    throw std::runtime_error( "Trigg dataitem NULL." );
+    SCOPE_DBG_PRINT("ERROR: Trigg dataitem NULL.\n");
+    throw std::runtime_error( "ERROR: Trigg dataitem NULL." );
   }
   
   sourceTriggItemInfo_ = sourceTriggItem_->getDataItemInfo();
   if(!sourceTriggItemInfo_) {
-    throw std::runtime_error( "Trigg dataitem info NULL." );
+    SCOPE_DBG_PRINT("ERROR: Trigg dataitem info NULL.\n");
+    throw std::runtime_error( "ERROR: Trigg dataitem info NULL." );
   }
 
   if( sourceTriggItem_->read((uint8_t*)(&oldTriggTime_),sourceTriggItemInfo_->dataElementSize)){
-    throw std::runtime_error( "Failed read trigg time." );
+    SCOPE_DBG_PRINT("ERROR: Failed read trigg time.\n");
+    throw std::runtime_error( "ERROR: Failed read trigg time." );
   }
   
   if(!sourceDataTypeSupported(sourceDataItem_->getEcmcDataType())) {
-    throw std::runtime_error( "Source data type not suppported.");
+    SCOPE_DBG_PRINT("ERROR: Source data type not suppported.\n");
+    throw std::runtime_error( "ERROR: Source data type not suppported.");
   }
   
   // Register asyn parameters
@@ -272,7 +281,8 @@ void ecmcScope::connectToDataSources() {
 }
 
 bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
-  SCOPE_DBG_PRINT("ecmcScope::sourceDataTypeSupported()!!!");
+  
+  SCOPE_DBG_PRINT("ecmcScope::sourceDataTypeSupported()");
 
   switch(dt) {
     case ECMC_EC_NONE:      
@@ -297,6 +307,12 @@ bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
   return 1;
 }
 
+/**
+ * Note: The code needs to handle both triggers in +- one ethercat cycle from the current cycle (also waiting for future analog values, if NEXT_TIME<TRIGG_TIME timestamps).
+ * If trigger is more recent than NEXT_TIME timestamp then just wait for next cycle to see if ai timestamp catches up.
+ * The analog samples from the prev cycles is always buffered to be able to also handle older timestamps (up to 2*NELM back in time)
+ * Seems that the above behaviour depends on where the slaves are physically in the chain.
+*/
 void ecmcScope::execute() {
 
   size_t bytesToCp = 0;
@@ -312,12 +328,14 @@ void ecmcScope::execute() {
 
   // Read trigg data
   if( sourceTriggItem_->read((uint8_t*)&triggTime_,sourceTriggItemInfo_->dataElementSize)){
-    throw std::runtime_error( "Failed read trigg time." );
+    SCOPE_DBG_PRINT("ERROR: Failed read trigg time.\n");
+    throw std::runtime_error( "ERROR: Failed read trigg time." );
   }
 
   // Read next sync timestamp
   if( sourceDataNexttimeItem_->read((uint8_t*)&sourceNexttime_,sourceDataNexttimeItemInfo_->dataElementSize)){
-    throw std::runtime_error( "Failed read next time." );
+    SCOPE_DBG_PRINT("ERROR: Failed read ai nexttime.\n");
+    throw std::runtime_error( "ERROR: Failed read nexttime." );
   }
 
   // Ensure enabled
@@ -331,16 +349,20 @@ void ecmcScope::execute() {
 
   switch(scopeState_) {
     case ECMC_SCOPE_STATE_INVALID:
-      SCOPE_DBG_PRINT("ecmcScope::execute():ECMC_SCOPE_STATE_INVALID!!!");
-
-    return;
-    break;
+      SCOPE_DBG_PRINT("ERROR: Invalid state (state = ECMC_SCOPE_STATE_INVALID).");
+      SCOPE_DBG_PRINT("INFO: Change state to ECMC_SCOPE_STATE_WAIT_TRIGG.\n");
+      bytesInResultBuffer_ = 0;
+      scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
+      // Wait for new trigg
+      setWaitForNextTrigg();
+      return;
+      break;
     
     case ECMC_SCOPE_STATE_WAIT_TRIGG:
 
     // New trigger then collect data
     if(oldTriggTime_ != triggTime_ && !firstTrigg_) {
-      SCOPE_DBG_PRINT("New trigger!!\n");      
+      SCOPE_DBG_PRINT("INFO: New trigger detected.\n");      
       
       //printf("sourceNexttime_=%" PRIu64 " ,sourceDataNexttimeItemInfo_->dataSize = %zu\n",sourceNexttime_,sourceDataNexttimeItemInfo_->dataSize);
 
@@ -351,12 +373,12 @@ void ecmcScope::execute() {
         SCOPE_DBG_PRINT("WARNING: Invalid trigger (occured more than two ethercat cycles ago)..");
         missedTriggs_++;
         asynMissedTriggs_->refreshParam(1);
-        // Wait for new trigg
+        // Wait for new trigg (skip this trigger)
         setWaitForNextTrigg();
         return;
       }
 
-      // Trigger is newer than ai next time. Wait for newer ai data to catch up
+      // Trigger is newer than ai next time. Wait for newer ai data to catch up (don't overwrite oldTriggTime_)
       if(samplesSinceLastTrigg < 0){        
         return;
       }
@@ -372,7 +394,6 @@ void ecmcScope::execute() {
           bytesToCp = resultDataBufferBytes_;
         }
 
-        //printf("bytesToCp from last scan = %lu\n", bytesToCp);
         memcpy( &resultDataBuffer_[0], &lastScanSourceDataBuffer_[sourceElementsPerSample_*2-samplesSinceLastTrigg], bytesToCp);
         bytesInResultBuffer_ = bytesToCp;
       }
@@ -387,34 +408,33 @@ void ecmcScope::execute() {
         
         // Write directtly into results buffer
         if( sourceDataItem_->read((uint8_t*)&resultDataBuffer_[bytesInResultBuffer_],bytesToCp)){
-          throw std::runtime_error( "Failed read source data." );
+          SCOPE_DBG_PRINT("ERROR: Failed read data source.\n");
+          throw std::runtime_error( "ERROR: Failed read data source." );
         }
-        // printf("bytesToCp from current scan = %lu\n", bytesToCp);
         bytesInResultBuffer_ += bytesToCp;
       }
 
       // If more data is needed the go to collect state.
       if(bytesInResultBuffer_ < resultDataBufferBytes_) {
         // Fill more data from next scan
-        scopeState_ = ECMC_SCOPE_STATE_COLLECT;
-        // printf("Change state to ECMC_SCOPE_STATE_COLLECT!!!\n");
-
+        scopeState_ = ECMC_SCOPE_STATE_COLLECT;        
       }
-      else {
-        resultParam_->refreshParam(1); // read once into asyn param lib
+      else {  // The data from current scan was enough. send over asyn and then start over (wait for next trigger)        
+        resultParam_->refreshParam(1);
         bytesInResultBuffer_ = 0;        
-        SCOPE_DBG_PRINT("Result Buffer full! SEND OVER ASYN!!!\n");
+        SCOPE_DBG_PRINT("INFO: Result Buffer full. Data push over asyn..\n");
         if(cfgDbgMode_) {
           printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
         }
       }
     }
     
-    // Avoid first rubbish trigger timestamp
+    // Avoid first rubbish trigger timestamp (when first value is read from bus it will differ from "0" and therefor trigger)
     if(oldTriggTime_ != triggTime_) {
       firstTrigg_ = 0;  
     }
-    // This trigg is handled
+
+    // This trigg is handled. Wait for next trigger
     setWaitForNextTrigg();
 
     break;
@@ -437,18 +457,18 @@ void ecmcScope::execute() {
         
         // Write directtly into results buffer
         if( sourceDataItem_->read((uint8_t*)&resultDataBuffer_[bytesInResultBuffer_],bytesToCp)){
-          throw std::runtime_error( "Failed read source data." );
+          SCOPE_DBG_PRINT("ERROR: Failed read data source..\n");
+          throw std::runtime_error( "ERROR: Failed read data source." );
         }
-        // printf("bytesToCp from current scan = %lu\n", bytesToCp);
         bytesInResultBuffer_ += bytesToCp;
       }
      
       if(bytesInResultBuffer_ >= resultDataBufferBytes_) {
-        resultParam_->refreshParam(1); // read once into asyn param lib
+        resultParam_->refreshParam(1);
         bytesInResultBuffer_ = 0;
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
-        SCOPE_DBG_PRINT("Change state to ECMC_SCOPE_STATE_WAIT_TRIGG!!!\n");
-        SCOPE_DBG_PRINT("Result Buffer full! SEND OVER ASYN!!!\n");
+        SCOPE_DBG_PRINT("INFO: Change state to ECMC_SCOPE_STATE_WAIT_TRIGG.\n");
+        SCOPE_DBG_PRINT("INFO: Result Buffer full. Data push over asyn..\n");
         if(cfgDbgMode_) {
           printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
         }
@@ -459,13 +479,21 @@ void ecmcScope::execute() {
 
     break;
     default:
+      SCOPE_DBG_PRINT("ERROR: Invalid state (state = default).");
+      bytesInResultBuffer_ = 0;
+      scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
+      // Wait for new trigg
+      setWaitForNextTrigg();
+      return;
+
     return;
     break;
   }
   
   // Read source data to last scan buffer (only one "old" scan seems to be needed)
   if( sourceDataItem_->read((uint8_t*)&lastScanSourceDataBuffer_[0],sourceDataItemInfo_->dataSize)){
-    throw std::runtime_error( "Failed source data." );
+    SCOPE_DBG_PRINT("ERROR: Failed read data source..\n");
+    throw std::runtime_error( "ERROR: Failed source data." );
   }
 
 }
@@ -502,7 +530,7 @@ void ecmcScope::printEcDataArray(uint8_t*       data,
                                  size_t         size,
                                  ecmcEcDataType dt,
                                  int objId) {
-  printf("Scope id: %d, data: ",objId);
+  printf("INFO: Scope id: %d, data: ",objId);
 
   size_t dataElementSize = getEcDataTypeByteSize(dt);
 
@@ -676,7 +704,8 @@ void ecmcScope::initAsyn() {
 
    ecmcAsynPortDriver *ecmcAsynPort = (ecmcAsynPortDriver *)getEcmcAsynPortDriver();
    if(!ecmcAsynPort) {
-     throw std::runtime_error( "ecmcAsynPort NULL." );
+     SCOPE_DBG_PRINT("ERROR: ecmcAsynPort NULL.");
+     throw std::runtime_error( "ERROR: ecmcAsynPort NULL." );
    }
 
   // Add resultdata "plugin.scope%d.resultdata"
@@ -685,7 +714,8 @@ void ecmcScope::initAsyn() {
   asynParamType asynType = getResultAsynDTFromEcDT(sourceDataItemInfo_->dataType);
 
   if(asynType == asynParamNotDefined) {
-    throw std::runtime_error( "ecmc data type not supported for param: " + paramName);
+    SCOPE_DBG_PRINT("ERROR: ecmc data type not supported for param.");
+    throw std::runtime_error( "ERROR: ecmc data type not supported for param: " + paramName);
   }
 
   resultParam_ = ecmcAsynPort->addNewAvailParam(
@@ -696,8 +726,9 @@ void ecmcScope::initAsyn() {
                                           sourceDataItemInfo_->dataType, // ecmc data type
                                           0);                    // die if fail
 
-  if(!resultParam_) {     
-    throw std::runtime_error( "Failed create asyn param for result: " + paramName);
+  if(!resultParam_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for result.");
+    throw std::runtime_error( "ERROR: Failed create asyn param for result: " + paramName);
   }
 
   resultParam_->setAllowWriteToEcmc(false);  // read only
@@ -716,8 +747,9 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_S32,           // ecmc data type
                                           0);                    // die if fail
 
-  if(!enbaleParam_) {     
-    throw std::runtime_error( "Failed create asyn param for enable: " + paramName);
+  if(!enbaleParam_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for enable.");
+    throw std::runtime_error( "ERROR: Failed create asyn param for enable: " + paramName);
   }
 
   enbaleParam_->setAllowWriteToEcmc(true);
@@ -736,8 +768,9 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_S32,           // ecmc data type
                                           0);                    // die if fail
 
-  if(!asynMissedTriggs_) {     
-    throw std::runtime_error( "Failed create asyn param for enable: " + paramName);
+  if(!asynMissedTriggs_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for missed trigg counter.");   
+    throw std::runtime_error( "ERROR: Failed create asyn param for missed trigg counter: " + paramName);
   }
 
   asynMissedTriggs_->setAllowWriteToEcmc(false);
@@ -756,8 +789,9 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_S32,           // ecmc data type
                                           0);                    // die if fail
 
-  if(!asynTriggerCounter_) {     
-    throw std::runtime_error( "Failed create asyn param for enable: " + paramName);
+  if(!asynTriggerCounter_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for trigg counter.");   
+    throw std::runtime_error( "ERROR: Failed create asyn param for trigg counter: " + paramName);
   }
 
   asynTriggerCounter_->setAllowWriteToEcmc(false);
@@ -776,8 +810,9 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_U8,            // ecmc data type
                                           0);                    // die if fail
 
-  if(!sourceStrParam_) {     
-    throw std::runtime_error( "Failed create asyn param for source: " + paramName);
+  if(!sourceStrParam_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for data source.");   
+    throw std::runtime_error( "ERROR: Failed create asyn param for data source: " + paramName);
   }
 
   sourceStrParam_->setAllowWriteToEcmc(false);  // read only
@@ -796,8 +831,9 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_U8,            // ecmc data type
                                           0);                    // die if fail
 
-  if(!triggStrParam_) {     
-    throw std::runtime_error( "Failed create asyn param for trigger: " + paramName);
+  if(!triggStrParam_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for trigger.");       
+    throw std::runtime_error( "ERROR: Failed create asyn param for trigger: " + paramName);
   }
 
   triggStrParam_->setAllowWriteToEcmc(false);  // read only
@@ -816,13 +852,15 @@ void ecmcScope::initAsyn() {
                                           ECMC_EC_U8,            // ecmc data type
                                           0);                    // die if fail
 
-  if(!sourceNexttimeStrParam_) {     
-    throw std::runtime_error( "Failed create asyn param for trigger: " + paramName);
+  if(!sourceNexttimeStrParam_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for nexttime.");       
+    throw std::runtime_error( "ERROR: Failed create asyn param for nexttime: " + paramName);
   }
 
   sourceNexttimeStrParam_->setAllowWriteToEcmc(false);  // read only
   sourceNexttimeStrParam_->refreshParam(1); // read once into asyn param lib
-  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
+  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);
+
 }
 
 asynParamType ecmcScope::getResultAsynDTFromEcDT(ecmcEcDataType ecDT) {
@@ -902,6 +940,13 @@ std::string ecmcScope::to_string(int value) {
 }
 
 void ecmcScope::setEnable(int enable) {
+  if(enable) {
+    SCOPE_DBG_PRINT("INFO: Scope enabled.\n");
+  }
+  else {
+    SCOPE_DBG_PRINT("INFO: Scope disabled.\n");
+  }
+
   cfgEnable_ = enable;
   enbaleParam_->refreshParam(1);
 }
