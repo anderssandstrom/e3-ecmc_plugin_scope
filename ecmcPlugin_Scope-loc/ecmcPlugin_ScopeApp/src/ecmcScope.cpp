@@ -375,7 +375,8 @@ void ecmcScope::execute() {
         setWaitForNextTrigg();
         return;
       }
-
+      
+      printf("samplesSinceLastTrigg=%" PRId64 "\n",samplesSinceLastTrigg);
       // Trigger is newer than ai next time. Wait for newer ai data to catch up (don't overwrite oldTriggTime_)
       if(samplesSinceLastTrigg < 0){        
         return;
@@ -383,19 +384,16 @@ void ecmcScope::execute() {
 
       SCOPE_DBG_PRINT("INFO: New trigger detected.\n");      
       
-
-      // Copy the the samples to result buffer (buffer allows to ethecat scans with value(s))      
-      triggerCounter_++;
-      asynTriggerCounter_->refreshParam(1);
-
       // Copy from last scan buffer if needed (if trigger occured during last scan)
       if(samplesSinceLastTrigg > sourceElementsPerSample_) {
         bytesToCp = (samplesSinceLastTrigg - sourceElementsPerSample_) * sourceDataItemInfo_->dataElementSize;
         if(resultDataBufferBytes_ < bytesToCp) {
           bytesToCp = resultDataBufferBytes_;
         }
-
-        memcpy( &resultDataBuffer_[0], &lastScanSourceDataBuffer_[sourceElementsPerSample_*2-samplesSinceLastTrigg], bytesToCp);
+        size_t startByte = (sourceElementsPerSample_*2-samplesSinceLastTrigg) * sourceDataItemInfo_->dataElementSize;
+        
+        
+        memcpy( &resultDataBuffer_[0], &lastScanSourceDataBuffer_[startByte], bytesToCp);
         bytesInResultBuffer_ = bytesToCp;
       }
 
@@ -422,8 +420,13 @@ void ecmcScope::execute() {
       }
       else {  // The data from current scan was enough. send over asyn and then start over (wait for next trigger)        
         resultParam_->refreshParam(1);
-        bytesInResultBuffer_ = 0;        
+        bytesInResultBuffer_ = 0;
+     
+        triggerCounter_++;
+        asynTriggerCounter_->refreshParam(1);
+
         SCOPE_DBG_PRINT("INFO: Result Buffer full. Data push over asyn..\n");
+
         if(cfgDbgMode_) {
           printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
         }
@@ -467,6 +470,8 @@ void ecmcScope::execute() {
       if(bytesInResultBuffer_ >= resultDataBufferBytes_) {
         resultParam_->refreshParam(1);
         bytesInResultBuffer_ = 0;
+        triggerCounter_++;
+        asynTriggerCounter_->refreshParam(1);
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
        // Wait for next trigger.
         setWaitForNextTrigg();
