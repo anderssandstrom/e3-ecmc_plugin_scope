@@ -360,10 +360,8 @@ void ecmcScope::execute() {
     
     case ECMC_SCOPE_STATE_WAIT_TRIGG:
 
-    // New trigger then collect data
-    if(oldTriggTime_ != triggTime_ && !firstTrigg_) {
-      SCOPE_DBG_PRINT("INFO: New trigger detected.\n");      
-      
+    // New trigger then collect data (or wait )
+    if(oldTriggTime_ != triggTime_ && !firstTrigg_) {      
       //printf("sourceNexttime_=%" PRIu64 " ,sourceDataNexttimeItemInfo_->dataSize = %zu\n",sourceNexttime_,sourceDataNexttimeItemInfo_->dataSize);
 
       // calculate how many samples ago trigger occured     
@@ -379,9 +377,14 @@ void ecmcScope::execute() {
       }
 
       // Trigger is newer than ai next time. Wait for newer ai data to catch up (don't overwrite oldTriggTime_)
-      if(samplesSinceLastTrigg < 0){        
+      if(samplesSinceLastTrigg < 0){
+
+        printf("samplesSinceLastTrigg: %" PRId64 "\n",samplesSinceLastTrigg);
         return;
       }
+
+      SCOPE_DBG_PRINT("INFO: New trigger detected.\n");      
+      
 
       // Copy the the samples to result buffer (buffer allows to ethecat scans with value(s))      
       triggerCounter_++;
@@ -417,7 +420,7 @@ void ecmcScope::execute() {
       // If more data is needed the go to collect state.
       if(bytesInResultBuffer_ < resultDataBufferBytes_) {
         // Fill more data from next scan
-        scopeState_ = ECMC_SCOPE_STATE_COLLECT;        
+        scopeState_ = ECMC_SCOPE_STATE_COLLECT;          
       }
       else {  // The data from current scan was enough. send over asyn and then start over (wait for next trigger)        
         resultParam_->refreshParam(1);
@@ -467,6 +470,8 @@ void ecmcScope::execute() {
         resultParam_->refreshParam(1);
         bytesInResultBuffer_ = 0;
         scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
+       // Wait for next trigger.
+        setWaitForNextTrigg();
         SCOPE_DBG_PRINT("INFO: Change state to ECMC_SCOPE_STATE_WAIT_TRIGG.\n");
         SCOPE_DBG_PRINT("INFO: Result Buffer full. Data push over asyn..\n");
         if(cfgDbgMode_) {
@@ -509,15 +514,18 @@ int64_t ecmcScope::timeDiff() {
     // use only 32bit dc info
     uint32_t trigg = getUint32((uint8_t*)&triggTime_);
     uint32_t next  = getUint32((uint8_t*)&sourceNexttime_);
-    
+    int64_t retVal = 0;
     // Overflow... always report shortest timediff
-    if (std::abs((int64_t)next)-((int64_t)trigg) > ECMC_MAX_32BIT / 2) {
-      if(next > trigg) {
-        return -(((int64_t)trigg) + ECMC_MAX_32BIT - ((int64_t)next));
+    if (std::abs((int64_t)next)-((int64_t)trigg) > (ECMC_MAX_32BIT / 2)) {      
+      if(next > trigg) {        
+        printf("Overflow 1!\n");
+        retVal = -(((int64_t)trigg) + ECMC_MAX_32BIT - ((int64_t)next));        
       } 
       else {
-        return ((int64_t)next) + ECMC_MAX_32BIT - ((int64_t)trigg);
+        printf("Overflow 2!\n");
+        retVal = ((int64_t)next) + ECMC_MAX_32BIT - ((int64_t)trigg);
       }
+      return retVal;
     }
     return ((int64_t)next)-((int64_t)trigg);
   }
