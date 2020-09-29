@@ -22,6 +22,7 @@
 typedef enum {
     ECMC_SCOPE_STATE_INVALID,     /**Invalid. */
     ECMC_SCOPE_STATE_WAIT_TRIGG,  /**Waiting for trigger. */
+    ECMC_SCOPE_STATE_WAIT_NEXT,   /**Waiting analog. (trigger newer than next ai time)*/
     ECMC_SCOPE_STATE_COLLECT,     /**Filling buffer (waiting for data). */    
 } ecmcScopeState;
 
@@ -55,8 +56,9 @@ class ecmcScope {
   void                  addDataToBuffer(double data);
   bool                  sourceDataTypeSupported(ecmcEcDataType dt);
   void                  initAsyn();
-  uint64_t              timeDiff();
+  int64_t               timeDiff();
   asynParamType         getResultAsynDTFromEcDT(ecmcEcDataType ecDT);
+  void                  setWaitForNextTrigg();
 
 
   uint8_t*              resultDataBuffer_;
@@ -78,10 +80,10 @@ class ecmcScope {
   uint64_t              triggTime_;
   uint64_t              oldTriggTime_;
   uint64_t              sourceNexttime_;
-  uint64_t              sourceSampleRateNS_; // nanoseconds
+  int64_t               sourceSampleRateNS_; // nanoseconds
   ecmcScopeState        scopeState_;
   uint64_t              ecmcSmapleTimeNS_;
-  size_t                sourceElementsPerSample_;
+  int64_t               sourceElementsPerSample_;
   size_t                elementsInResultBuffer_;
 
   // Config options
@@ -92,12 +94,18 @@ class ecmcScope {
   size_t                cfgBufferElementCount_; // Config: Data set size
   int                   cfgEnable_;          // Config: Enable data acq./calc.
 
+  int                   missedTriggs_;
+  int                   triggerCounter_;
+
   // Asyn
   ecmcAsynDataItem     *sourceStrParam_;
   ecmcAsynDataItem     *triggStrParam_;
   ecmcAsynDataItem     *enbaleParam_;
   ecmcAsynDataItem     *resultParam_;
   ecmcAsynDataItem     *sourceNexttimeStrParam_;
+  ecmcAsynDataItem     *asynMissedTriggs_;
+  ecmcAsynDataItem     *asynTriggerCounter_;
+
 
   // Some generic utility functions
   static uint8_t        getUint8(uint8_t* data);

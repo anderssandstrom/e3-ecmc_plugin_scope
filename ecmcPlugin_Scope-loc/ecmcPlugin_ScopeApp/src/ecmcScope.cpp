@@ -20,12 +20,15 @@
 #define ECMC_PLUGIN_ASYN_SCOPE_SOURCE "source"
 #define ECMC_PLUGIN_ASYN_SCOPE_TRIGG  "trigg"
 #define ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC "nexttime"
+#define ECMC_PLUGIN_ASYN_MISSED       "missed"
+#define ECMC_PLUGIN_ASYN_TRIGG_COUNT  "count"
 
 #define SCOPE_DBG_PRINT(str)  \
 if(cfgDbgMode_) { \
     printf(str);  \
 }                 \
 
+#define ECMC_MAX_32BIT 0xFFFFFFFF
 
 #include <sstream>
 #include "ecmcScope.h"
@@ -45,6 +48,8 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   cfgTriggStr_        = NULL;
   resultDataBuffer_   = NULL;  
   lastScanSourceDataBuffer_   = NULL;
+  missedTriggs_       = 0;
+  triggerCounter_     = 0;
   objectId_           = scopeIndex;  
   triggOnce_          = 0;
   dataSourceLinked_   = 0;
@@ -65,6 +70,8 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   triggStrParam_  = NULL;
   enbaleParam_    = NULL;
   resultParam_    = NULL;
+  asynMissedTriggs_ = NULL;
+  asynTriggerCounter_ = NULL;
 
   // ecmcDataItems
   sourceDataItem_         = NULL;
@@ -293,12 +300,13 @@ bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
 void ecmcScope::execute() {
 
   size_t bytesToCp = 0;
-  oldTriggTime_ = triggTime_;
 
   // Ensure ethercat bus is started
   if(getEcmcEpicsIOCState() < 15) {
     bytesInResultBuffer_ = 0;
     scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
+    // Wait for new trigg
+    setWaitForNextTrigg();
     return;
   }
 
@@ -307,10 +315,17 @@ void ecmcScope::execute() {
     throw std::runtime_error( "Failed read trigg time." );
   }
 
-  // Ensure ethercat bus is started
+  // Read next sync timestamp
+  if( sourceDataNexttimeItem_->read((uint8_t*)&sourceNexttime_,sourceDataNexttimeItemInfo_->dataElementSize)){
+    throw std::runtime_error( "Failed read next time." );
+  }
+
+  // Ensure enabled
   if(!cfgEnable_) {
     bytesInResultBuffer_ = 0;
     scopeState_ = ECMC_SCOPE_STATE_WAIT_TRIGG;
+    // Wait for new trigg
+    setWaitForNextTrigg();
     return;
   }
 
@@ -327,21 +342,28 @@ void ecmcScope::execute() {
     if(oldTriggTime_ != triggTime_ && !firstTrigg_) {
       SCOPE_DBG_PRINT("New trigger!!\n");      
       
-      if( sourceDataNexttimeItem_->read((uint8_t*)&sourceNexttime_,sourceDataNexttimeItemInfo_->dataElementSize)){
-        throw std::runtime_error( "Failed read next time." );
-      }
-
       //printf("sourceNexttime_=%" PRIu64 " ,sourceDataNexttimeItemInfo_->dataSize = %zu\n",sourceNexttime_,sourceDataNexttimeItemInfo_->dataSize);
 
       // calculate how many samples ago trigger occured     
-      size_t samplesSinceLastTrigg = timeDiff() / sourceSampleRateNS_;
+      int64_t samplesSinceLastTrigg = timeDiff() / sourceSampleRateNS_;
       
-      // Copy the the samples to result buffer (buffer allows to ethecat scans with value(s))
-      if(samplesSinceLastTrigg <= 0 || samplesSinceLastTrigg > sourceElementsPerSample_ * 2) {
-        SCOPE_DBG_PRINT("WARNING: INVALID TRIGGER TIME..");
+      if( samplesSinceLastTrigg > sourceElementsPerSample_ * 2) {
+        SCOPE_DBG_PRINT("WARNING: Invalid trigger (occured more than two ethercat cycles ago)..");
+        missedTriggs_++;
+        asynMissedTriggs_->refreshParam(1);
+        // Wait for new trigg
+        setWaitForNextTrigg();
         return;
-        //throw std::runtime_error( "Invalid trigg time (not within current sample)." );
       }
+
+      // Trigger is newer than ai next time. Wait for newer ai data to catch up
+      if(samplesSinceLastTrigg < 0){        
+        return;
+      }
+
+      // Copy the the samples to result buffer (buffer allows to ethecat scans with value(s))      
+      triggerCounter_++;
+      asynTriggerCounter_->refreshParam(1);
 
       // Copy from last scan buffer if needed (if trigger occured during last scan)
       if(samplesSinceLastTrigg > sourceElementsPerSample_) {
@@ -392,14 +414,18 @@ void ecmcScope::execute() {
     if(oldTriggTime_ != triggTime_) {
       firstTrigg_ = 0;  
     }
+    // This trigg is handled
+    setWaitForNextTrigg();
 
     break;
-    
+
     case ECMC_SCOPE_STATE_COLLECT:
 
       if (oldTriggTime_ != triggTime_) {
-        SCOPE_DBG_PRINT("WARNING: LATCH DISGARDED SINCE STATE==ECMC_SCOPE_STATE_COLLECT.\n");
-        oldTriggTime_ = triggTime_;
+        SCOPE_DBG_PRINT("WARNING: Latch during sampling of data. This trigger will be disregarded.\n");        
+        setWaitForNextTrigg();
+        missedTriggs_++;
+        asynMissedTriggs_->refreshParam(1);
       }
       
       // Ensure not to much data is copied
@@ -427,7 +453,10 @@ void ecmcScope::execute() {
           printEcDataArray(resultDataBuffer_,resultDataBufferBytes_,sourceDataItemInfo_->dataType,objectId_);
         }
       }
-    
+
+      // Wait for next trigger.
+      setWaitForNextTrigg();
+
     break;
     default:
     return;
@@ -444,18 +473,15 @@ void ecmcScope::execute() {
 /** Calculate depending on bits (32 or 64 bit dc)
  *  If one is 32 bit then only compare lower 32 bits
  * sourceDataNexttimeItemInfo_ is always considered to happen in the future (after trigg)
- * If 32 bit registers then it can max be 2^32 ns between trigg and nexttime (approx 5s).
+ * If 32 bit registers then it can max be 2^32 ns between trigg and nexttime (approx 4s).
 */
-uint64_t ecmcScope::timeDiff() {  
+int64_t ecmcScope::timeDiff() {  
 
-  //printf("trigg=%" PRIu64 ", next=%" PRIu64 "\n",triggTime_,sourceNexttime_);
-
-  if(sourceTriggItemInfo_->dataBitCount<64 || sourceDataNexttimeItemInfo_->dataBitCount<=64) {
+  if(sourceTriggItemInfo_->dataBitCount<64 || sourceDataNexttimeItemInfo_->dataBitCount<64) {
     // use only 32bit dc info
     uint32_t trigg = getUint32((uint8_t*)&triggTime_);
     uint32_t next  = getUint32((uint8_t*)&sourceNexttime_);
-    //printf("trigg=%u, next=%u\n",trigg,next);
-    return next-trigg;
+    return ((int64_t)next)-((int64_t)trigg);
   }
 
   // Both are 64 bit dc timestamps
@@ -688,6 +714,46 @@ void ecmcScope::initAsyn() {
   enbaleParam_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 
+  // Add missed triggers "plugin.scope%d.missed"
+  paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
+                          "." + ECMC_PLUGIN_ASYN_MISSED;
+
+  asynMissedTriggs_ = ecmcAsynPort->addNewAvailParam(
+                                          paramName.c_str(),     // name
+                                          asynParamInt32,        // asyn type 
+                                          (uint8_t*)&missedTriggs_, // pointer to data
+                                          sizeof(missedTriggs_),    // size of data
+                                          ECMC_EC_S32,           // ecmc data type
+                                          0);                    // die if fail
+
+  if(!asynMissedTriggs_) {     
+    throw std::runtime_error( "Failed create asyn param for enable: " + paramName);
+  }
+
+  asynMissedTriggs_->setAllowWriteToEcmc(false);
+  asynMissedTriggs_->refreshParam(1); // read once into asyn param lib
+  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
+
+  // Add trigger counter "plugin.scope%d.count"
+  paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
+                          "." + ECMC_PLUGIN_ASYN_TRIGG_COUNT;
+
+  asynTriggerCounter_ = ecmcAsynPort->addNewAvailParam(
+                                          paramName.c_str(),     // name
+                                          asynParamInt32,        // asyn type 
+                                          (uint8_t*)&triggerCounter_, // pointer to data
+                                          sizeof(triggerCounter_),    // size of data
+                                          ECMC_EC_S32,           // ecmc data type
+                                          0);                    // die if fail
+
+  if(!asynTriggerCounter_) {     
+    throw std::runtime_error( "Failed create asyn param for enable: " + paramName);
+  }
+
+  asynTriggerCounter_->setAllowWriteToEcmc(false);
+  asynTriggerCounter_->refreshParam(1); // read once into asyn param lib
+  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
+
   // Add enable "plugin.scope%d.source"
   paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
                           "." + ECMC_PLUGIN_ASYN_SCOPE_SOURCE;
@@ -827,9 +893,14 @@ std::string ecmcScope::to_string(int value) {
 
 void ecmcScope::setEnable(int enable) {
   cfgEnable_ = enable;
+  enbaleParam_->refreshParam(1);
 }
   
 void ecmcScope::triggScope() {
   clearBuffers();
   triggOnce_ = 1;
+}
+
+void ecmcScope::setWaitForNextTrigg() {
+  oldTriggTime_ = triggTime_; 
 }
