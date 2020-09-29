@@ -81,26 +81,20 @@ int scopeExitRT(void){
   return 0;
 }
 
-// Plc function for clear of buffers
-double scope_clear(double index) {
-  return (double)clearScope((int)index);
-}
+// // Plc function for clear of buffers
+// double scope_clear(double index) {
+//   return (double)clearScope((int)index);
+// }
 
 // Plc function for enable
 double scope_enable(double index, double enable) {
   return (double)enableScope((int)index, (int)enable);
 }
 
-// Plc function for trigg new measurement (will clear buffers)
-double scope_trigg(double index) {
-  return (double)triggScope((int)index);
-}
-#define ECMC_PLUGIN_DBG_PRINT_OPTION_CMD       "DBG_PRINT="
-#define ECMC_PLUGIN_SOURCE_OPTION_CMD          "SOURCE="
-#define ECMC_PLUGIN_SOURCE_NEXTTIME_OPTION_CMD "SOURCE_NEXTTIME="
-#define ECMC_PLUGIN_TRIGG_OPTION_CMD           "TRIGG="
-#define ECMC_PLUGIN_RESULT_ELEMENTS_OPTION_CMD "RESULT_ELEMENS="
-#define ECMC_PLUGIN_ENABLE_OPTION_CMD          "ENABLE="
+// // Plc function for trigg new measurement (will clear buffers)
+// double scope_trigg(double index) {
+//   return (double)triggScope((int)index);
+// }
 
 // Register data for plugin so ecmc know what to use
 struct ecmcPluginData pluginDataDef = {
@@ -136,14 +130,14 @@ struct ecmcPluginData pluginDataDef = {
         // Function name (this is the name you use in ecmc plc-code)
         .funcName = "scope_clear",
         // Function description
-        .funcDesc = "double scope_clear(index) : Clear/reset scope[index].",
+        .funcDesc = "scope_enable(index,enable) : Enable/disaable scope[index].",
         /**
         * 12 different prototypes allowed (only doubles since reg in plc).
         * Only funcArg${argCount} func shall be assigned the rest set to NULL.
         **/
         .funcArg0 = NULL,
-        .funcArg1 = scope_clear,
-        .funcArg2 = NULL,
+        .funcArg1 = NULL,
+        .funcArg2 = scope_enable,
         .funcArg3 = NULL,
         .funcArg4 = NULL,
         .funcArg5 = NULL,
