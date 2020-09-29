@@ -376,7 +376,8 @@ void ecmcScope::execute() {
         return;
       }
       
-      printf("samplesSinceLastTrigg=%" PRId64 "\n",samplesSinceLastTrigg);
+      // printf("samplesSinceLastTrigg=%" PRId64 "\n",samplesSinceLastTrigg);
+      
       // Trigger is newer than ai next time. Wait for newer ai data to catch up (don't overwrite oldTriggTime_)
       if(samplesSinceLastTrigg < 0){        
         return;
