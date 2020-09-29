@@ -187,3 +187,140 @@ Plugin info:
 
 ```
 
+# Troubleshooting
+
+## Missed triggers
+The plugin can not handle triggers before the acquistion from the previous trigger is completed. Therefore the maximum triggering rate depends on the amount of data that shoudl be acquired.
+Therfore, in order to handle higher triggering rates, the result element count might need lowering (see above options).
+
+## Slave time syncing
+If the dc time syncronization of the slaves is not working properly then the timestamps from both trigger and analog i/o will drift apart resulting in lost triggers and currupted data.
+This could be related to that an old version of the etherlab master is installed and needs to be upgraded.
+
+### Verify dc diagnostics
+
+#### ethercat master command
+
+ethercat master dc diagnostics is ok by issueing the "etehrcat master" command (when ecmc-ioc is running):
+
+```
+dev@mcag-epics4 ~ $ ethercat master
+Master0
+  Phase: Operation
+  Active: yes
+  Slaves: 49
+  Ethernet devices:
+    Main: c0:3f:d5:66:24:13 (attached)
+      Link: UP
+      Tx frames:   1419695
+      Tx bytes:    553305060
+      Rx frames:   1419694
+      Rx bytes:    553304557
+      Tx errors:   0
+      Tx frame rate [1/s]:   1000   1000   1000
+      Tx rate [KByte/s]:    498.0  498.0  498.0
+      Rx frame rate [1/s]:   1000   1000   1000
+      Rx rate [KByte/s]:    498.0  498.0  498.0
+    Common:
+      Tx frames:   1419695
+      Tx bytes:    553305060
+      Rx frames:   1419694
+      Rx bytes:    553304557
+      Lost frames: 0
+      Tx frame rate [1/s]:   1000   1000   1000
+      Tx rate [KByte/s]:    498.0  498.0  498.0
+      Rx frame rate [1/s]:   1000   1000   1000
+      Rx rate [KByte/s]:    498.0  498.0  498.0
+      Loss rate [1/s]:          0     -0      0
+      Frame loss [%]:         0.0   -0.0    0.0
+  Distributed clocks:
+    Reference clock:   Slave 0
+    DC reference time: 654699808777655501
+    Application time:  654700465153733449
+                       2020-09-29 13:14:25.153733449
+```
+The last section of the printout lists some dc information of the master. Check teh following: 
+
+* The "Reference clock" should be assigned to a slave.
+
+* The "DC reference time" should have a resonable value.
+
+* The "Application time" should have a resonable value.
+
+#### ethercat slaves command
+
+Check the dc diagnostics for both the triggering and analog input slave bu the ethercat slaves command (when ecmc-ioc is running).
+
+Example: Trigger slave id = 1
+
+```
+ev@mcag-epics4 ~ $ ethercat slaves -p1 -v
+=== Master 0, Slave 1 ===
+Device: Main
+State: OP
+Flag: +
+Identity:
+  Vendor Id:       0x00000002
+  Product code:    0x04e43052
+  Revision number: 0x00150000
+  Serial number:   0x00000000
+DL information:
+  FMMU bit operation: no
+  Distributed clocks: yes, 64 bit
+  DC system time transmission delay: 140 ns
+Port  Type  Link  Loop    Signal  NextSlave  RxTime [ns]  Diff [ns]   NextDc [ns]
+   0  EBUS  up    open    yes             0   1224884182           0         140
+   1  EBUS  up    open    yes             2   1224891012        6830         154
+   2  N/A   down  closed  no              -            -           -           -
+   3  N/C   down  closed  no              -            -           -           -
+General:
+  Group: DigIn
+  Image name: TERM_DI
+  Order number: EL1252
+  Device name: EL1252 2K. Fast Dig. Eingang 24V, 1�s, DC Latch
+  Flags:
+    Enable SafeOp: no
+    Enable notLRW: no
+  Current consumption: 110 mA
+```
+
+Example: analog input slave id = 35
+
+```
+dev@mcag-epics4 ~ $ ethercat slaves -p35 -v
+=== Master 0, Slave 35 ===
+Device: Main
+State: OP
+Flag: +
+Identity:
+  Vendor Id:       0x00000002
+  Product code:    0x0e763052
+  Revision number: 0x00030000
+  Serial number:   0x00000000
+DL information:
+  FMMU bit operation: no
+  Distributed clocks: yes, 32 bit
+  DC system time transmission delay: 9088 ns
+Port  Type  Link  Loop    Signal  NextSlave  RxTime [ns]  Diff [ns]   NextDc [ns]
+   0  EBUS  up    open    yes            34   1765139745           0         170
+   1  EBUS  down  closed  no              -            -           -           -
+   2  N/A   down  closed  no              -            -           -           -
+   3  N/A   down  closed  no              -            -           -           -
+General:
+  Group: AnaInFast
+  Image name: TERM_AI
+  Order number: EL3702
+  Device name: EL3702 2K. Ana. Eingang +/-10V, DIFF, Oversample
+  Flags:
+    Enable SafeOp: no
+    Enable notLRW: no
+  Current consumption: 200 mA
+```
+
+Check the following for both slaves:
+
+* "DC system time transmission delay" is a non zero value (like above)
+
+* "Distributed clocks" is "yes" and 32 or 64 bit
+
+If status of the above commands are not according to the examples then the etherlab master probbaly needs to be upgraded/reinstalled. Use the etherlab master repo: https://github.com/icshwi/etherlabmaster/ (or for ESS install via cs-entry.)
