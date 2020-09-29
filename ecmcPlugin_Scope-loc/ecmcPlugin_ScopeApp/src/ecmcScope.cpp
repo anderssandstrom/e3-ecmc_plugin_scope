@@ -377,9 +377,7 @@ void ecmcScope::execute() {
       }
 
       // Trigger is newer than ai next time. Wait for newer ai data to catch up (don't overwrite oldTriggTime_)
-      if(samplesSinceLastTrigg < 0){
-
-        printf("samplesSinceLastTrigg: %" PRId64 "\n",samplesSinceLastTrigg);
+      if(samplesSinceLastTrigg < 0){        
         return;
       }
 
@@ -510,28 +508,35 @@ void ecmcScope::execute() {
 */
 int64_t ecmcScope::timeDiff() {  
   // retrun time from trigg to next
-  if(sourceTriggItemInfo_->dataBitCount<64 || sourceDataNexttimeItemInfo_->dataBitCount<64) {
+  int64_t retVal = 0;
+  if(sourceTriggItemInfo_->dataBitCount < 64 || sourceDataNexttimeItemInfo_->dataBitCount < 64) {
     // use only 32bit dc info
     uint32_t trigg = getUint32((uint8_t*)&triggTime_);
     uint32_t next  = getUint32((uint8_t*)&sourceNexttime_);
-    int64_t retVal = 0;
+
     // Overflow... always report shortest timediff
-    if (std::abs((int64_t)next)-((int64_t)trigg) > (ECMC_MAX_32BIT / 2)) {      
-      if(next > trigg) {        
-        printf("Overflow 1!\n");
-        retVal = -(((int64_t)trigg) + ECMC_MAX_32BIT - ((int64_t)next));        
+    if (std::abs( ((int64_t)next)-((int64_t)trigg)) > (int64_t)(ECMC_MAX_32BIT / 2)) {
+      if(next > trigg) {                
+        retVal = -(((int64_t)trigg) + ECMC_MAX_32BIT - ((int64_t)next));
+        //if(std::abs(retVal)>ECMC_MAX_32BIT/2)  printf("Overflow 1! %" PRId64 "\n", retVal);
       } 
-      else {
-        printf("Overflow 2!\n");
+      else {        
         retVal = ((int64_t)next) + ECMC_MAX_32BIT - ((int64_t)trigg);
-      }
-      return retVal;
+        //if(std::abs(retVal)>ECMC_MAX_32BIT/2)  printf("Overflow 2! %" PRId64 "\n", retVal);
+      }      
     }
-    return ((int64_t)next)-((int64_t)trigg);
+    else {
+      retVal = ((int64_t)next)-((int64_t)trigg);
+      //if(std::abs(retVal)>ECMC_MAX_32BIT/2)  printf("timediff 3! %" PRId64 "\n", retVal);
+    }    
+  }
+  else {
+    // Both are 64 bit dc timestamps
+    retVal = sourceNexttime_ - triggTime_;
+    //if(std::abs(retVal)>ECMC_MAX_32BIT/2)  printf("timediff 4! %" PRId64 "\n", retVal);
   }
 
-  // Both are 64 bit dc timestamps
-  return sourceNexttime_ - triggTime_;
+  return retVal;
 }
 
 void ecmcScope::printEcDataArray(uint8_t*       data, 

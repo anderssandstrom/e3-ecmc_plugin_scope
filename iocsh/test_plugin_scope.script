@@ -32,7 +32,7 @@ ${SCRIPTEXEC} ${ecmccfg_DIR}addSlave.cmd, "SLAVE_ID=$(SLAVE_NUM_TRIGG), HW_DESC=
 epicsEnvSet("SLAVE_NUM_AI",           "35")
 ${SCRIPTEXEC} ${ecmccfg_DIR}addSlave.cmd, "SLAVE_ID=$(SLAVE_NUM_AI), HW_DESC=EL3702, NELM=${ECMC_OVER_SMP}"
 
-ecmcConfigOrDie "Cfg.EcSelectReferenceDC(0,$(ECMC_EC_SLAVE_NUM))"
+#ecmcConfigOrDie "Cfg.EcSelectReferenceDC(0,$(SLAVE_NUM_TRIGG))"
 
 #Apply hardware configuration
 ecmcConfigOrDie "Cfg.EcApplyConfig(1)"
