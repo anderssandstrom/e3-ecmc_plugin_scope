@@ -158,33 +158,37 @@ An example script can be found in the iocsh directory of this repo.
 
 ```
 Plugin info: 
-  Index                = 0
+  Index                = 1
   Name                 = ecmcPlugin_Scope
   Description          = Scope plugin for use with ecmc.
   Option description   = 
     DBG_PRINT=<1/0>    : Enables/disables printouts from plugin, default = disabled.
     SOURCE=<source>    : Ec source variable (example: ec0.s1.mm.CH1_ARRAY).
-    RESULT_ELEMENS=<Result buffer size>        : Data points to collect, default = 4096.
+    RESULT_ELEMENTS=<Result buffer size>        : Data points to collect, default = 4096.
     SOURCE_NEXTTIME=<nexttime>   : Ec next sync time for source (example: ec0.s1.NEXTTIME)
     TRIGG=<trigger>   : Ec trigg time (example: ec0.s2.LATCH_POS).
     ENABLE=<1/0>   : Enable data acq, defaults to enabled.
 
-  Filename             = /home/pi/sources/e3-ecmcPlugin_Scope/ecmcPlugin_Scope-loc/O.7.0.4_linux-arm/libecmcPlugin_Scope.so
-  Config string        = SOURCE=ec0.s11.mm.CH1_ARRAY;DBG_PRINT=1;TRIGG=ec0.s6.CH1_LATCH_POS;SOURCE_NEXTTIME=ec0.s11.NEXT_TIME;RESULT_ELEMENTS=1024;
+  Filename             = /home/dev/projects/e3-ecmcPlugin_Scope/ecmcPlugin_Scope-loc/O.7.0.4_linux-x86_64/libecmcPlugin_Scope.so
+  Config string        = SOURCE=ec0.s35.mm.CH1_ARRAY;DBG_PRINT=0;TRIGG=ec0.s1.CH1_LATCH_POS;SOURCE_NEXTTIME=ec0.s35.NEXT_TIME;RESULT_ELEMENTS=500;
   Version              = 2
   Interface version    = 65536 (ecmc = 65536)
      max plc funcs     = 64
      max plc func args = 10
      max plc consts    = 64
-  Construct func       = @0xb5026400
-  Enter realtime func  = @0xb5026450
-  Exit realtime func   = @0xb50263f8
-  Realtime func        = @0xb502644c
-  Destruct func        = @0xb5026428
-  dlhandle             = @0xa228d8
+  Construct func       = @0x7f28a4eca2a0
+  Enter realtime func  = @0x7f28a4eca300
+  Exit realtime func   = @0x7f28a4eca290
+  Realtime func        = @0x7f28a4eca2f0
+  Destruct func        = @0x7f28a4eca2c0
+  dlhandle             = @0x1883050
   Plc functions:
+    funcs[00]:
+      Name       = "scope_enable(arg0, arg1);"
+      Desc       = scope_enable(index,enable) : Enable/disaable scope[index].
+      Arg count  = 2
+      func       = @0x7f28a4eca310
   Plc constants:
-
 ```
 
 # Troubleshooting
