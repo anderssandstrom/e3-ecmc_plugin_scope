@@ -476,11 +476,21 @@ void ecmcScope::execute() {
  * If 32 bit registers then it can max be 2^32 ns between trigg and nexttime (approx 4s).
 */
 int64_t ecmcScope::timeDiff() {  
-
+  // retrun time from trigg to next
   if(sourceTriggItemInfo_->dataBitCount<64 || sourceDataNexttimeItemInfo_->dataBitCount<64) {
     // use only 32bit dc info
     uint32_t trigg = getUint32((uint8_t*)&triggTime_);
     uint32_t next  = getUint32((uint8_t*)&sourceNexttime_);
+    
+    // Overflow... always report shortest timediff
+    if (std::abs((int64_t)next)-((int64_t)trigg) > ECMC_MAX_32BIT / 2) {
+      if(next > trigg) {
+        return -(((int64_t)trigg) + ECMC_MAX_32BIT - ((int64_t)next));
+      } 
+      else {
+        return ((int64_t)next) + ECMC_MAX_32BIT - ((int64_t)trigg);
+      }
+    }
     return ((int64_t)next)-((int64_t)trigg);
   }
 
