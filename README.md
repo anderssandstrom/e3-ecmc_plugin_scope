@@ -145,11 +145,15 @@ The plugin contains a template file, "ecmcPluginScope.template", that will make 
 The available records from this template file can be listed by the cmd:
 ```
 raspberrypi-15269 > dbgrep *Scope*
+raspberrypi-4295 > dbgrep *Scope*
+IOC_TEST:Plugin-Scope0-MissTriggCntAct
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct
+IOC_TEST:Plugin-Scope0-TriggCntAct
 IOC_TEST:Plugin-Scope0-Enable
 IOC_TEST:Plugin-Scope0-DataSource
 IOC_TEST:Plugin-Scope0-TriggSource
+IOC_TEST:Plugin-Scope0-NextTimeSource
 IOC_TEST:Plugin-Scope0-Data-Act
-
 ```
 
 ## Plugin info
@@ -204,6 +208,32 @@ The below image shows triggered acquisition in 10Hz of a 100Hz sinus 1Vpp. For e
 ## Missed triggers
 The plugin can not handle triggers before the acquistion from the previous trigger is completed. Therefore the maximum triggering rate depends on the amount of data that shoudl be acquired.
 Therfore, in order to handle higher triggering rates, the result element count might need lowering (see above options).
+
+Missed triggers can also be a result of bad syncronized dc clocks. If the dc-clocks are syncing properlly the value of "NEXT_TIME" should always be after the trigger value (since NEXT_TIME should occur in the future).
+The time between NEXT_TIME and trigger can be diagnosed by the "ScanToTriggTimeAct" pv like in this example (NELM=100):
+```
+camonitor IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct
+OC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:20.680888 91  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:20.703867 118  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:20.906862 115  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:20.944867 87  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.019865 102  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.282872 93  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.362859 99  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.470863 102  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.476857 117  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.533869 164  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.607838 141  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.663831 155  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.782874 102  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:21.862873 105  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:22.034887 122  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:22.108859 147  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:22.190871 119  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:22.329864 133  
+IOC_TEST:Plugin-Scope0-ScanToTriggTimeAct 2020-09-30 08:40:22.336863 104  
+```
+The value shoud always be 0 < value < 2*NELM which means that the trigger occured up to 2*NELM ago.
 
 ## Slave time syncing
 If the dc time syncronization of the slaves is not working properly then the timestamps from both trigger and analog i/o will drift apart resulting in lost triggers and currupted data.
