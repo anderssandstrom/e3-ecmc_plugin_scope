@@ -63,6 +63,14 @@ record(ai,"$(P)Plugin-Scope${INDEX}-MissTriggCntAct"){
   field(SCAN, "I/O Intr")
 }
 
+record(ai,"$(P)Plugin-Scope${INDEX}-ScanToTriggTimeAct"){
+  field(PINI, "1")
+  field(DESC, "Time between scan and trigger [ns]")
+  field(DTYP,"asynFloat64")
+  field(INP, "@asyn(${PORT},$(ADDR=0),$(TIMEOUT=1000))T_SMP_MS=$(T_SMP_MS=1000)/TYPE=asynFloat64/plugin.scope${INDEX}.scantotriggtime?")
+  field(SCAN, "I/O Intr")
+}
+
 record(ai,"$(P)Plugin-Scope${INDEX}-TriggCntAct"){
   field(PINI, "1")
   field(DESC, "Trigger counter")

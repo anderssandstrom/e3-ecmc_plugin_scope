@@ -85,6 +85,7 @@ class ecmcScope {
   uint64_t              ecmcSmapleTimeNS_;
   int64_t               sourceElementsPerSample_;
   size_t                elementsInResultBuffer_;
+  double                samplesSinceLastTrigg_;
 
   // Config options
   char*                 cfgDataSourceStr_;   // Config: data source string
@@ -105,6 +106,7 @@ class ecmcScope {
   ecmcAsynDataItem     *sourceNexttimeStrParam_;
   ecmcAsynDataItem     *asynMissedTriggs_;
   ecmcAsynDataItem     *asynTriggerCounter_;
+  ecmcAsynDataItem     *asynTimeTrigg2Sample_;
 
 
   // Some generic utility functions

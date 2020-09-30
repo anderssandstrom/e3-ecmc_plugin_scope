@@ -14,14 +14,16 @@
 // Needed to get headers in ecmc right...
 #define ECMC_IS_PLUGIN
 
-#define ECMC_PLUGIN_ASYN_PREFIX          "plugin.scope"
-#define ECMC_PLUGIN_ASYN_ENABLE          "enable"
-#define ECMC_PLUGIN_ASYN_RESULTDATA      "resultdata"
-#define ECMC_PLUGIN_ASYN_SCOPE_SOURCE    "source"
-#define ECMC_PLUGIN_ASYN_SCOPE_TRIGG     "trigg"
-#define ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC "nexttime"
-#define ECMC_PLUGIN_ASYN_MISSED          "missed"
-#define ECMC_PLUGIN_ASYN_TRIGG_COUNT     "count"
+#define ECMC_PLUGIN_ASYN_PREFIX                "plugin.scope"
+#define ECMC_PLUGIN_ASYN_ENABLE                "enable"
+#define ECMC_PLUGIN_ASYN_RESULTDATA            "resultdata"
+#define ECMC_PLUGIN_ASYN_SCOPE_SOURCE          "source"
+#define ECMC_PLUGIN_ASYN_SCOPE_TRIGG           "trigg"
+#define ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC       "nexttime"
+#define ECMC_PLUGIN_ASYN_MISSED                "missed"
+#define ECMC_PLUGIN_ASYN_TRIGG_COUNT           "count"
+#define ECMC_PLUGIN_ASYN_SCAN_TO_TRIGG_OFFSET  "scantotriggtime"
+
 
 #define SCOPE_DBG_PRINT(str)  \
 if(cfgDbgMode_) {             \
@@ -64,7 +66,8 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   firstTrigg_               = 1; // Avoid first trigger (0 timestamp..)
   scopeState_               = ECMC_SCOPE_STATE_INVALID;
   ecmcSmapleTimeNS_         = (uint64_t)getEcmcSampleTimeMS()*1E6;
-  
+  samplesSinceLastTrigg_    = 0;
+
   // Asyn
   sourceStrParam_           = NULL;
   sourceNexttimeStrParam_   = NULL;
@@ -73,6 +76,7 @@ ecmcScope::ecmcScope(int   scopeIndex,       // index of this object (if several
   resultParam_              = NULL;
   asynMissedTriggs_         = NULL;
   asynTriggerCounter_       = NULL;
+  asynTimeTrigg2Sample_     = NULL;
 
   // ecmcDataItems
   sourceDataItem_           = NULL;
@@ -308,10 +312,9 @@ bool ecmcScope::sourceDataTypeSupported(ecmcEcDataType dt) {
 }
 
 /**
- * Note: The code needs to handle both triggers in +- one ethercat cycle from the current cycle (also waiting for future analog values, if NEXT_TIME<TRIGG_TIME timestamps).
- * If trigger is more recent than NEXT_TIME timestamp then just wait for next cycle to see if ai timestamp catches up.
- * The analog samples from the prev cycles is always buffered to be able to also handle older timestamps (up to 2*NELM back in time)
- * Seems that the above behaviour depends on where the slaves are physically in the chain.
+ * Note: The code needs to handle triggers in the current and the past ethercat scan.
+ * If the trigger is newer than "NEXT_TIME" then the dc clocks must be out of sync (see readme)
+ * The analog samples from the prev cycles is always buffered to be able to also handle older timestamps (up to 2*NELM back in time) 
 */
 void ecmcScope::execute() {
 
@@ -365,10 +368,11 @@ void ecmcScope::execute() {
       //printf("sourceNexttime_=%" PRIu64 " ,sourceDataNexttimeItemInfo_->dataSize = %zu\n",sourceNexttime_,sourceDataNexttimeItemInfo_->dataSize);
 
       // calculate how many samples ago trigger occured     
-      int64_t samplesSinceLastTrigg = timeDiff() / sourceSampleRateNS_;
-      
-      if( samplesSinceLastTrigg > sourceElementsPerSample_ * 2) {
-        SCOPE_DBG_PRINT("WARNING: Invalid trigger (occured more than two ethercat cycles ago)..");
+      samplesSinceLastTrigg_ = timeDiff() / sourceSampleRateNS_;
+      asynTimeTrigg2Sample_->refreshParam(1);
+
+      if( samplesSinceLastTrigg_ > sourceElementsPerSample_ * 2 || samplesSinceLastTrigg_ < 0) {
+        SCOPE_DBG_PRINT("WARNING: Invalid trigger (occured more than two ethercat cycles ago or in future)..");
         missedTriggs_++;
         asynMissedTriggs_->refreshParam(1);
         // Wait for new trigg (skip this trigger)
@@ -376,22 +380,17 @@ void ecmcScope::execute() {
         return;
       }
       
-      // printf("samplesSinceLastTrigg=%" PRId64 "\n",samplesSinceLastTrigg);
+      // printf("samplesSinceLastTrigg_=%lf\n",samplesSinceLastTrigg_);
       
-      // Trigger is newer than ai next time. Wait for newer ai data to catch up (don't overwrite oldTriggTime_)
-      if(samplesSinceLastTrigg < 0){        
-        return;
-      }
-
       SCOPE_DBG_PRINT("INFO: New trigger detected.\n");      
       
       // Copy from last scan buffer if needed (if trigger occured during last scan)
-      if(samplesSinceLastTrigg > sourceElementsPerSample_) {
-        bytesToCp = (samplesSinceLastTrigg - sourceElementsPerSample_) * sourceDataItemInfo_->dataElementSize;
+      if(samplesSinceLastTrigg_ > sourceElementsPerSample_) {
+        bytesToCp = (samplesSinceLastTrigg_ - sourceElementsPerSample_) * sourceDataItemInfo_->dataElementSize;
         if(resultDataBufferBytes_ < bytesToCp) {
           bytesToCp = resultDataBufferBytes_;
         }
-        size_t startByte = (sourceElementsPerSample_*2-samplesSinceLastTrigg) * sourceDataItemInfo_->dataElementSize;
+        size_t startByte = (sourceElementsPerSample_*2-samplesSinceLastTrigg_) * sourceDataItemInfo_->dataElementSize;
         
         
         memcpy( &resultDataBuffer_[0], &lastScanSourceDataBuffer_[startByte], bytesToCp);
@@ -815,6 +814,28 @@ void ecmcScope::initAsyn() {
 
   asynTriggerCounter_->setAllowWriteToEcmc(false);
   asynTriggerCounter_->refreshParam(1); // read once into asyn param lib
+  ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
+
+  // Add trigger counter "plugin.scope%d.scantotriggtime"
+  paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
+                          "." + ECMC_PLUGIN_ASYN_SCAN_TO_TRIGG_OFFSET;
+
+  asynTimeTrigg2Sample_ = ecmcAsynPort->addNewAvailParam(
+                                          paramName.c_str(),     // name
+                                          asynParamFloat64,      // asyn type 
+                                          (uint8_t*)&samplesSinceLastTrigg_, // pointer to data
+                                          sizeof(samplesSinceLastTrigg_),    // size of data
+                                          ECMC_EC_S64,           // ecmc data type
+                                          0);                    // die if fail
+
+  if(!asynTimeTrigg2Sample_) {
+    SCOPE_DBG_PRINT("ERROR: Failed create asyn param for time trigg to sample.");   
+    throw std::runtime_error( "ERROR: Failed create asyn param for time trigg to sample: " + paramName);
+  }
+
+  asynTimeTrigg2Sample_->addSupportedAsynType(asynParamFloat64);
+  asynTimeTrigg2Sample_->setAllowWriteToEcmc(false);
+  asynTimeTrigg2Sample_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 
   // Add enable "plugin.scope%d.source"
