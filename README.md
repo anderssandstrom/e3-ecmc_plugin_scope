@@ -205,10 +205,10 @@ The below image shows triggered acquisition in 10Hz of a 100Hz sinus 1Vpp. For e
 # Troubleshooting
 
 ## Missed triggers
-The plugin can not handle triggers before the acquistion from the previous trigger is completed. Therefore the maximum triggering rate depends on the amount of data that shoudl be acquired.
+The plugin can not handle new triggers before the acquistion from the previous trigger is completed. Therefore the maximum triggering rate depends on the amount of data that should be acquired.
 Therfore, in order to handle higher triggering rates, the result element count might need lowering (see above options).
 
-Missed triggers can also be a result of bad syncronized dc clocks. If the dc-clocks are syncing properlly the value of "NEXT_TIME" should always be after the trigger value (since NEXT_TIME should occur in the future).
+Missed triggers can also be a result of bad syncronized dc clocks. If the dc-clocks are syncing properly the value of "NEXT_TIME" should always be after the trigger value (since NEXT_TIME should occur in the future).
 The time between NEXT_TIME and trigger can be diagnosed by the "ScanToTriggSamples" pv like in this example (NELM=100):
 ```
 camonitor IOC_TEST:Plugin-Scope0-ScanToTriggSamples
