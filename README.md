@@ -221,7 +221,7 @@ IOC_TEST:Plugin-Scope0-ScanToTriggSamples 2020-09-30 08:40:21.282872 93
 IOC_TEST:Plugin-Scope0-ScanToTriggSamples 2020-09-30 08:40:21.362859 99  
 IOC_TEST:Plugin-Scope0-ScanToTriggSamples 2020-09-30 08:40:21.470863 102  
 ```
-The value shoud always be 0 < value < 2*NELM which means that the trigger occured up to 2*NELM ago.
+The value should always be 0 < value < 2*NELM (NELM = Oversamplefactor or samples per ethercat cycle) which means that the trigger occured up to 2*NELM ago.
 If the value is outside these limts the trigger will be rejected. The reason could be badly syncrobized dc-clocks (see below). 
 
 ## Slave time syncing
