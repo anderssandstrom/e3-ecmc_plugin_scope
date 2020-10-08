@@ -47,7 +47,7 @@ class ecmcScope {
   // Call just before realtime because then all data sources should be available
   void                  connectToDataSources();
   void                  setEnable(int enable);
-  void                  clearBuffers();
+  //void                  clearBuffers();
   void                  triggScope();
   void                  execute();
 

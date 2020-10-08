@@ -21,7 +21,7 @@ int         createScope(char *configStr);
 
 int         enableScope(int scopeIndex, int enable);
 
-int         clearScope(int scopeIndex);
+//int         clearScope(int scopeIndex);
 
 int         triggScope(int scopeIndex);
 

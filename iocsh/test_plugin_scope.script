@@ -37,7 +37,7 @@ ecmcConfigOrDie "Cfg.EcApplyConfig(1)"
 ########################################################################s######
 ## Load plugin: Scope
 
-require ecmcPlugin_Scope master  # te get access to db file..
+require ecmcPlugin_Scope master  # to get access to db file..
 
 epicsEnvSet(RESULT_NELM, 500)
 epicsEnvSet(ECMC_PLUGIN_FILNAME,"/home/pi/sources/e3-ecmcPlugin_Scope/ecmcPlugin_Scope-loc/O.7.0.4_linux-arm/libecmcPlugin_Scope.so")

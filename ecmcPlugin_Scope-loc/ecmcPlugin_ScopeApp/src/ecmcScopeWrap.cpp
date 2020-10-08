@@ -83,16 +83,16 @@ int enableScope(int scopeIndex, int enable) {
   return 0;
 }
 
-int clearScope(int scopeIndex) {
-  try {
-    scopes.at(scopeIndex)->clearBuffers();
-  }
-  catch(std::exception& e) {
-    printf("Exception: %s. Scope index out of range.\n",e.what());
-    return ECMC_PLUGIN_SCOPE_ERROR_CODE;
-  }  
-  return 0;
-}
+// int clearScope(int scopeIndex) {
+//   try {
+//     scopes.at(scopeIndex)->clearBuffers();
+//   }
+//   catch(std::exception& e) {
+//     printf("Exception: %s. Scope index out of range.\n",e.what());
+//     return ECMC_PLUGIN_SCOPE_ERROR_CODE;
+//   }  
+//   return 0;
+// }
 
 int triggScope(int scopeIndex) {
   try {

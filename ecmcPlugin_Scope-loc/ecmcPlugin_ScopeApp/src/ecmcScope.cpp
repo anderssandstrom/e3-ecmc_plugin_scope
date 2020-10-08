@@ -992,10 +992,14 @@ void ecmcScope::setEnable(int enable) {
 }
   
 void ecmcScope::triggScope() {
-  clearBuffers();
   triggOnce_ = 1;
 }
 
 void ecmcScope::setWaitForNextTrigg() {
   oldTriggTime_ = triggTime_; 
 }
+
+// void ecmcScope::clearBuffers() {
+//   return
+// }
+
