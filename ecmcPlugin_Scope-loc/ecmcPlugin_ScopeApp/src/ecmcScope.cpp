@@ -22,7 +22,7 @@
 #define ECMC_PLUGIN_ASYN_SCOPE_NEXT_SYNC       "nexttime"
 #define ECMC_PLUGIN_ASYN_MISSED                "missed"
 #define ECMC_PLUGIN_ASYN_TRIGG_COUNT           "count"
-#define ECMC_PLUGIN_ASYN_SCAN_TO_TRIGG_OFFSET  "scantotriggtime"
+#define ECMC_PLUGIN_ASYN_SCAN_TO_TRIGG_OFFSET  "scantotrigg"
 
 
 #define SCOPE_DBG_PRINT(str)  \
@@ -816,7 +816,7 @@ void ecmcScope::initAsyn() {
   asynTriggerCounter_->refreshParam(1); // read once into asyn param lib
   ecmcAsynPort->callParamCallbacks(ECMC_ASYN_DEFAULT_LIST, ECMC_ASYN_DEFAULT_ADDR);  
 
-  // Add trigger counter "plugin.scope%d.scantotriggtime"
+  // Add trigger counter "plugin.scope%d.scantotrigg"
   paramName = ECMC_PLUGIN_ASYN_PREFIX + to_string(objectId_) + 
                           "." + ECMC_PLUGIN_ASYN_SCAN_TO_TRIGG_OFFSET;
 
