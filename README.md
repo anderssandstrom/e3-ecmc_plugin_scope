@@ -35,7 +35,7 @@ Trigger:
 
 ## Loading of Scope plugin in ecmc: 
 
-NOTE: Do not use "require" to load plugin.
+NOTE: "require" can be used to get access to the template file. However, the plugin also needs to be loaded like below.
 
 A plugin is loaded by the ecmccfg command loadPlugin:
 https://github.com/icshwi/ecmccfg/blob/master/scripts/loadPlugin.cmd
