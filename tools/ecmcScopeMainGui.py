@@ -43,10 +43,21 @@ class comSignal(QObject):
     data_signal = pyqtSignal(object)
 
 class ecmcScopeMainGui(QtWidgets.QDialog):
-    def __init__(self,prefix=None,scopePluginId=None):        
-        super(ecmcScopeMainGui, self).__init__()        
+    def __init__(self,prefix=None,scopePluginId=None):
+        super(ecmcScopeMainGui, self).__init__()
+        self.offline = False
         self.pvPrefixStr = prefix
         self.scopePluginId = scopePluginId
+
+        if prefix is None or scopePluginId is None:
+            self.offline = True
+            self.pause = True
+            self.enable = False           
+        else:
+            self.buildPvNames()
+            self.offline = False
+            self.pause = False            
+
 
         # Callbacks through signals
         self.comSignalMissTriggCnt = comSignal()
@@ -60,103 +71,73 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.comSignalScanToTriggSamples = comSignal()
         self.comSignalScanToTriggSamples.data_signal.connect(self.callbackFuncScanToTriggSamples)
 
-        self.pause = 0        
-        # Data Arrays
+        # Data
         self.missTriggCnt = None
         self.triggCnt = None
         self.rawdataY = None
-        #self.rawdataX = None
-
         self.enable = None
+        self.createWidgets()
+        self.connectPvs()
+        self.setStatusOfWidgets()
+        return
 
-        self.figure = plt.figure()                            
-        #self.plottedLineSpect = None
+    def buildPvName(self, suffixname):
+        return self.pvPrefixStr + 'Plugin-Scope' + str(self.scopePluginId) + '-' + suffixname 
+
+    def buildPvNames(self):
+        if self.offline:
+           self.pvNameTriggCnt = None
+           self.pvNameMissTriggCnt = None
+           self.pvNameRawDataY = None
+           self.pvnNameEnable = None
+           self.pvnNameSource = None
+           self.pvNameNextTimeSource = None
+           self.pvNameTriggSource = None
+           self.pvNameScanToTriggSamples = None
+        else:
+           self.pvNameTriggCnt = self.buildPvName('TriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-Amp-Act"
+           self.pvNameMissTriggCnt = self.buildPvName('MissTriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-X-Axis-Act"
+           self.pvNameRawDataY = self.buildPvName('Data-Act') # IOC_TEST:Plugin-FFT0-Raw-Data-Act
+           self.pvnNameEnable = self.buildPvName('Enable') # IOC_TEST:Plugin-FFT0-Enable
+           self.pvnNameSource = self.buildPvName('DataSource') # IOC_TEST:Plugin-FFT0-Source
+           self.pvNameNextTimeSource = self.buildPvName('NextTimeSource') # IOC_TEST:Plugin-FFT0-Source
+           self.pvNameTriggSource = self.buildPvName('TriggSource') # IOC_TEST:Plugin-FFT0-Source
+           self.pvNameScanToTriggSamples = self.buildPvName('ScanToTriggSamples') # IOC_TEST:Plugin-FFT0-Mode-RB
+    
+    def createWidgets(self):
+        self.figure = plt.figure()
         self.plottedLineRaw = None
-        #self.axSpect = None
         self.axRaw = None
         self.canvas = FigureCanvas(self.figure)   
         self.toolbar = NavigationToolbar(self.canvas, self) 
         self.pauseBtn = QPushButton(text = 'pause')
         self.pauseBtn.setFixedSize(100, 50)
         self.pauseBtn.clicked.connect(self.pauseBtnAction)        
-        self.pauseBtn.setStyleSheet("background-color: green")
-        #self.pauseBtn.setCheckable(True) 
-
+        self.pauseBtn.setStyleSheet("background-color: green")        
         self.openBtn = QPushButton(text = 'open data')
         self.openBtn.setFixedSize(100, 50)
         self.openBtn.clicked.connect(self.openBtnAction)
-
-
         self.enableBtn = QPushButton(text = 'enable Scope')
         self.enableBtn.setFixedSize(100, 50)
         self.enableBtn.clicked.connect(self.enableBtnAction)
-        #self.enableBtn.setCheckable(True) 
-
         self.saveBtn = QPushButton(text = 'save data')
         self.saveBtn.setFixedSize(100, 50)
         self.saveBtn.clicked.connect(self.saveBtnAction)
-
         self.triggCntLineEdit = QLineEdit(text = '0')
         self.triggCntLineEdit.setEnabled(False)
         self.triggCntLineEdit.setFixedSize(150, 30)
         self.triggCntLabel = QLabel(text = "triggers []:")
-
         self.missTriggCntLineEdit = QLineEdit(text = '0')
         self.missTriggCntLineEdit.setEnabled(False)
         self.missTriggCntLineEdit.setFixedSize(150, 30)
         self.missTriggCntLabel = QLabel(text = "missed []:")
-
         self.scanToTriggSamplesLineEdit = QLineEdit(text = '0')
         self.scanToTriggSamplesLineEdit.setEnabled(False)
         self.scanToTriggSamplesLineEdit.setFixedSize(150, 30)
         self.scanToTriggSamplesLabel = QLabel(text = "Sample offset []:")
-
-        #self.triggBtn = QPushButton(text = 'trigg FFT')
-        #self.triggBtn.setFixedSize(100, 50)
-        #self.triggBtn.clicked.connect(self.triggBtnAction)            
-       
-        # Pv names based on structure:  <prefix>Plugin-FFT<scopePluginId>-<suffixname>
-        self.pvNameTriggCnt = self.buildPvName('TriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-Amp-Act"
-        #print("self.pvNameTriggCnt=" + self.pvNameTriggCnt)
-        self.pvNameMissTriggCnt = self.buildPvName('MissTriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-X-Axis-Act"
-        #print("self.pvNameMissTriggCnt=" + self.pvNameMissTriggCnt)        
-        self.pvNameRawDataY = self.buildPvName('Data-Act') # IOC_TEST:Plugin-FFT0-Raw-Data-Act
-        #print("self.pvNameRawDataY=" + self.pvNameRawDataY)        
-        self.pvnNameEnable = self.buildPvName('Enable') # IOC_TEST:Plugin-FFT0-Enable
-        #print("self.pvnNameEnable=" + self.pvnNameEnable)
-        #self.pvnNameTrigg = self.buildPvName('Trigg') # IOC_TEST:Plugin-FFT0-Trigg
-        #print("self.pvnNameTrigg=" + self.pvnNameTrigg)
-        self.pvnNameSource = self.buildPvName('DataSource') # IOC_TEST:Plugin-FFT0-Source
-        #print("self.pvnNameSource=" + self.pvnNameSource)
-        self.pvNameNextTimeSource = self.buildPvName('NextTimeSource') # IOC_TEST:Plugin-FFT0-Source
-        #print("self.pvNameNextTimeSource=" + self.pvNameNextTimeSource)
-        self.pvNameTriggSource = self.buildPvName('TriggSource') # IOC_TEST:Plugin-FFT0-Source
-        #print("self.pvNameTriggSource=" + self.pvNameTriggSource)
-        #self.pvnNameSampleRate = self.buildPvName('SampleRate-Act') # IOC_TEST:Plugin-FFT0-SampleRate-Act
-        #print("self.pvnNameSampleRate=" + self.pvnNameSampleRate)
-        #self.pvnNameNFFT = self.buildPvName('NFFT') # IOC_TEST:Plugin-FFT0-NFFT
-        #print("self.pvnNameNFFT=" + self.pvnNameNFFT)
-        self.pvNameScanToTriggSamples = self.buildPvName('ScanToTriggSamples') # IOC_TEST:Plugin-FFT0-Mode-RB
-        #print("self.pvNameScanToTriggSamples=" + self.pvNameScanToTriggSamples)
-
-        self.connectPvs()
-        
-        # Check actual value of pvs
-        if(self.pvEnable.get() > 0):
-          self.enableBtn.setStyleSheet("background-color: green")
-          self.enable = True
-        else:
-          self.enableBtn.setStyleSheet("background-color: red")
-          self.enable = False
-
-        self.sourceStr = self.pvSource.get(as_string=True)
-        self.scanToTriggSamples = self.pvScanToTriggSamples.get()
-        self.nextTimeSourceStr = self.pvNextTimeSource.get(as_string=True)
-        self.triggSourceStr = self.pvTriggSource.get(as_string=True)
-        
+               
         # Fix layout
-        self.setGeometry(300, 300, 900, 700)
-        self.writeTitleGui()
+        self.setGeometry(300, 300, 900, 700)        
 
         layoutVert = QVBoxLayout()
         layoutVert.addWidget(self.toolbar) 
@@ -191,8 +172,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         layoutControl.addWidget(frameSamplesToTrigger)
         layoutControl.addWidget(self.saveBtn)
         layoutControl.addWidget(self.openBtn)
-
-        #layoutControl.addWidget(self.triggBtn)
     
         frameControl = QFrame(self)
         frameControl.setFixedHeight(70)
@@ -200,19 +179,45 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
 
         layoutVert.addWidget(frameControl) 
 
-        self.setLayout(layoutVert)                
-        return
+        self.setLayout(layoutVert)
 
+    def setStatusOfWidgets(self):
+        if self.offline:
+            self.enableBtn.setStyleSheet("background-color: grey")
+            self.enableBtn.setEnabled(False)
+            self.pauseBtn.setStyleSheet("background-color: grey")
+            self.pauseBtn.setEnabled(False)
+            
+            self.setWindowTitle("ecmc Scope Main plot: Offline")
+            
+            #self.sourceStr = "Offline"
+            #self.scanToTriggSamples = 0
+            #self.nextTimeSourceSt = "Offline"
+            #self.triggSourceStr = "Offline"
+        else:
 
-    def writeTitleGui(self):
-        self.setWindowTitle("ecmc Scope Main plot: prefix=" + self.pvPrefixStr + " , scopeId=" + str(self.scopePluginId) + 
-                    ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + 
-                    ', trigg=' + self.triggSourceStr)
+            self.enableBtn.setEnabled(True)
+            self.pauseBtn.setEnabled(True)
+            # Check actual value of pvs
+            if(self.pvEnable.get() > 0):
+               self.enableBtn.setStyleSheet("background-color: green")
+               self.enable = True
+            else:
+               self.enableBtn.setStyleSheet("background-color: red")
+               self.enable = False
 
-    def buildPvName(self, suffixname):
-        return self.pvPrefixStr + 'Plugin-Scope' + str(self.scopePluginId) + '-' + suffixname 
+            self.sourceStr = self.pvSource.get(as_string=True)
+            self.scanToTriggSamples = self.pvScanToTriggSamples.get()
+            self.nextTimeSourceStr = self.pvNextTimeSource.get(as_string=True)
+            self.triggSourceStr = self.pvTriggSource.get(as_string=True)
+            self.setWindowTitle("ecmc Scope Main plot: prefix=" + self.pvPrefixStr + " , scopeId=" + str(self.scopePluginId) + 
+                        ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + 
+                        ', trigg=' + self.triggSourceStr)
+
 
     def connectPvs(self):        
+        if self.offline:
+            return
 
         if self.pvNameMissTriggCnt is None:
             raise RuntimeError("pvname missed trigg counter must not be 'None'")
@@ -234,11 +239,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         if len(self.pvnNameEnable)==0:
             raise RuntimeError("pvname enable must not be ''")
 
-        #if self.pvnNameTrigg is None:
-        #    raise RuntimeError("pvname trigg must not be 'None'")
-        #if len(self.pvnNameTrigg)==0:
-        #    raise RuntimeError("pvname trigg must not be ''")
-
         if self.pvnNameSource is None:
             raise RuntimeError("pvname source must not be 'None'")
         if len(self.pvnNameSource)==0:
@@ -253,53 +253,58 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
             raise RuntimeError("pvname TriggSource must not be 'None'")
         if len(self.pvNameTriggSource)==0:
             raise RuntimeError("pvname TriggSource must not be ''")
-
-        #if self.pvnNameSampleRate is None:
-        #    raise RuntimeError("pvname sample rate must not be 'None'")
-        #if len(self.pvnNameSampleRate)==0:
-        #    raise RuntimeError("pvname sample rate must not be ''")
-                
+               
         if self.pvNameScanToTriggSamples is None:
             raise RuntimeError("pvname ScanToTriggSamples must not be 'None'")
         if len(self.pvNameScanToTriggSamples)==0:
             raise RuntimeError("pvname ScanToTriggSamples must not be ''")
         
         self.pvMissTriggCnt = epics.PV(self.pvNameMissTriggCnt)
-        #print('self.pvMissTriggCnt: ' + self.pvMissTriggCnt.info)
-
+        if self.pvMissTriggCnt is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
         self.pvTriggCnt = epics.PV(self.pvNameTriggCnt)
-        #print('self.pvTriggCnt: ' + self.pvTriggCnt.info)
-
+        if self.pvTriggCnt is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
         self.pvRawData = epics.PV(self.pvNameRawDataY)
-        #print('self.pvRawData: ' + self.pvTriggCnt.info)
-
+        if self.pvRawData is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
         self.pvEnable = epics.PV(self.pvnNameEnable)
-        #print('self.pvEnable: ' + self.pvEnable.info)
-        
-        #self.pvTrigg = epics.PV(self.pvnNameTrigg)
-        #print('self.pvTrigg: ' + self.pvTrigg.info)
-
+        if self.pvEnable is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
         self.pvSource = epics.PV(self.pvnNameSource)
-        #print('self.pvSource: ' + self.pvSource.info)
-
+        if self.pvSource is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return        
         self.pvNextTimeSource = epics.PV(self.pvNameNextTimeSource)
-        #print('self.pvNextTimeSource: ' + self.pvNextTimeSource.info)
-
+        if self.pvNextTimeSource is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
         self.pvTriggSource = epics.PV(self.pvNameTriggSource)
-        #print('self.pvTriggSource: ' + self.pvTriggSource.info)
-        
-        #self.pvSampleRate = epics.PV(self.pvnNameSampleRate)
-        #print('self.pvSampleRate: ' + self.pvSampleRate.info)
-
+        if self.pvTriggSource is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
         self.pvScanToTriggSamples = epics.PV(self.pvNameScanToTriggSamples)
-        #print('self.pvScanToTriggSamples: ' + self.pvScanToTriggSamples.info)        
+        if self.pvScanToTriggSamples is None:
+            print('Failed connect to PV')
+            self.offline = 1
+            return
 
         self.pvMissTriggCnt.add_callback(self.onChangepvMissTriggCnt)
         self.pvTriggCnt.add_callback(self.onChangepvTriggCnt)
         self.pvRawData.add_callback(self.onChangePvrawData)
         self.pvEnable.add_callback(self.onChangePvEnable)
         self.pvScanToTriggSamples.add_callback(self.onChangePVScanToTriggSamples)
-
         QCoreApplication.processEvents()
     
     ###### Pv monitor callbacks
@@ -348,9 +353,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         if(np.size(value)) > 0:
             #if self.rawdataX is None or np.size(value) != np.size(self.rawdataY):
             #    self.rawdataX = np.arange(-np.size(value)/self.sampleRate, 0, 1/self.sampleRate)
-
             self.rawdataY = value
-            # print("Size X,Y: " + str(np.size(self.rawdataX))+ ", " +str(np.size(self.rawdataY)))
             self.plotRaw()
         return
 
@@ -362,13 +365,24 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         else:
             self.pauseBtn.setStyleSheet("background-color: green")
             # Retrigger plots with newest values
-            self.comSignalTriggCnt.data_signal.emit(self.triggCnt)
-            self.comSignalRawData.data_signal.emit(self.rawdataY)
+        if not self. offline:
+           self.missTriggCnt = self.pvMissTriggCnt.get()
+           self.triggCnt     = self.pvTriggCnt.get()
+           self.rawdataY     = self.pvRawData.get()
+           self.enable       = self.pvEnable.get()
+           self.scanToTriggSamples =self.pvScanToTriggSamples.get()
+
+        self.comSignalScanToTriggSamples.data_signal.emit(self.scanToTriggSamples)
+        self.comSignalMissTriggCnt.data_signal.emit(self.missTriggCnt)
+        self.comSignalTriggCnt.data_signal.emit(self.triggCnt)        
+        self.comSignalRawData.data_signal.emit(self.rawdataY)
         return
 
     def openBtnAction(self):
-        self.pause = 0  # pause while open
-        self.pauseBtnAction()
+        if not self.offline:
+           self.pause = 0  # pause while open if online
+           self.pauseBtnAction()
+                   
         fname = QFileDialog.getOpenFileName(self, 'Open file', '.', "Data files (*.npz)")
         if fname is None:
             return
@@ -380,29 +394,56 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         npzfile = np.load(fname[0])
 
         # verify scope plugin
-        if npzfile['plugin']!="Scope":
+        if npzfile['plugin'] != "Scope":
             print ("Invalid data type (wrong plugin type)")
         # File valid 
-        self.rawdataY           = npzfile['rawdataY']
-        self.triggCnt           = npzfile['triggCnt']
-        self.missTriggCnt       = npzfile['missTriggCnt']
-        self.scanToTriggSamples = npzfile['scanToSample']
-        self.pvNameTriggCnt =npzfile['pvNameTriggCnt']
-        self.pvNameMissTriggCnt =npzfile['pvNameMissTriggCnt']
-        self.pvNameRawDataY =npzfile['pvNameRawDataY']
-        self.pvnNameEnable =npzfile['pvnNameEnable']
-        self.pvnNameSource =npzfile['pvnNameSource']
-        self.pvNameNextTimeSource =npzfile['pvNameNextTimeSource']
-        self.pvNameTriggSource =npzfile['pvNameTriggSource']
-        self.pvNameScanToTriggSamples =npzfile['pvNameScanToTriggSamples']
+        self.rawdataY                 = npzfile['rawdataY']
+        self.triggCnt                 = npzfile['triggCnt']
+        self.missTriggCnt             = npzfile['missTriggCnt']
+        self.scanToTriggSamples       = npzfile['scanToSample']
 
-        # trigg draw 
+        if self.offline: # do not overwrite if online mode
+           self.pvNameTriggCnt           = npzfile['pvNameTriggCnt']
+           self.pvNameMissTriggCnt       = npzfile['pvNameMissTriggCnt']
+           self.pvNameRawDataY           = npzfile['pvNameRawDataY']
+           self.pvnNameEnable            = npzfile['pvnNameEnable']
+           self.pvnNameSource            = npzfile['pvnNameSource']
+           self.pvNameNextTimeSource     = npzfile['pvNameNextTimeSource']
+           self.pvNameTriggSource        = npzfile['pvNameTriggSource']
+           self.pvNameScanToTriggSamples = npzfile['pvNameScanToTriggSamples']
+
+        # trigg draw
         self.comSignalScanToTriggSamples.data_signal.emit(self.scanToTriggSamples)
         self.comSignalMissTriggCnt.data_signal.emit(self.missTriggCnt)
         self.comSignalTriggCnt.data_signal.emit(self.triggCnt)        
         self.comSignalRawData.data_signal.emit(self.rawdataY)
         
-        self.writeTitleGui()
+        self.setStatusOfWidgets()
+        return
+
+    def saveBtnAction(self):
+        fname = QFileDialog.getSaveFileName(self, 'Save file', '.', "Data files (*.npz)")
+        if fname is None:
+            return
+        if np.size(fname) != 2:            
+            return
+        if len(fname[0])<=0:
+            return
+        # Save all relevant data
+        np.savez(fname[0],
+                 plugin                   = "Scope",
+                 rawdataY                 = self.rawdataY,
+                 triggCnt                 = self.triggCnt,
+                 missTriggCnt             = self.missTriggCnt,
+                 scanToSample             = self.scanToTriggSamples,
+                 pvNameTriggCnt           = self.pvNameTriggCnt,
+                 pvNameMissTriggCnt       = self.pvNameMissTriggCnt,
+                 pvNameRawDataY           = self.pvNameRawDataY,
+                 pvnNameEnable            = self.pvnNameEnable,
+                 pvnNameSource            = self.pvnNameSource,
+                 pvNameNextTimeSource     = self.pvNameNextTimeSource,
+                 pvNameTriggSource        = self.pvNameTriggSource,
+                 pvNameScanToTriggSamples = self.pvNameScanToTriggSamples)
         return
 
     def enableBtnAction(self):
@@ -414,35 +455,9 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
           self.enableBtn.setStyleSheet("background-color: red")
         return
 
-    def saveBtnAction(self):
-        fname = QFileDialog.getSaveFileName(self, 'Save file', '.', "Data files (*.npz)")
-        if fname is None:
-            return
-        if np.size(fname) != 2:            
-            return
-        if len(fname[0])<=0:
-            return
-        np.savez(fname[0],plugin = "Scope",
-                          rawdataY = self.rawdataY,
-                          triggCnt = self.triggCnt,
-                          missTriggCnt = self.missTriggCnt,
-                          scanToSample = self.scanToTriggSamples,
-                          pvNameTriggCnt = self.pvNameTriggCnt,
-                          pvNameMissTriggCnt = self.pvNameMissTriggCnt,
-                          pvNameRawDataY = self.pvNameRawDataY,
-                          pvnNameEnable = self.pvnNameEnable,
-                          pvnNameSource = self.pvnNameSource,
-                          pvNameNextTimeSource = self.pvNameNextTimeSource,
-                          pvNameTriggSource = self.pvNameTriggSource,
-                          pvNameScanToTriggSamples = self.pvNameScanToTriggSamples)
-        return
-
-    #def triggBtnAction(self):
-    #    self.pvTrigg.put(True)
-    #    return
-
+    # Plots 
     def plotRaw(self):
-        if self.pause:            
+        if self.pause and not self.offline:            
             return
         if self.rawdataY is None:
             return
@@ -460,8 +475,10 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.axRaw.grid(True)
 
         self.axRaw.set_xlabel('Samples []')
-        self.axRaw.set_ylabel(self.pvNameRawDataY +' [' + self.pvRawData.units + ']') 
-
+        if self.offline:
+           self.axRaw.set_ylabel(self.pvNameRawDataY)  # No unit in offline mode..
+        else:
+           self.axRaw.set_ylabel(self.pvNameRawDataY  +' [' + self.pvRawData.units + ']') 
         # refresh canvas 
         self.canvas.draw()
 
@@ -476,12 +493,19 @@ def printOutHelp():
   print("Will connect to Pvs: <prefix>Plugin-Scope<scopeId>-*")
 
 if __name__ == "__main__":
-    import sys    
-    if len(sys.argv)!=3:
-        printOutHelp()
-        sys.exit()
-    prefix=sys.argv[1]
-    scopeId=int(sys.argv[2])
+    import sys
+    # Open in offline mode
+    prefix = None
+    scopeId = None
+    if len(sys.argv) == 1:
+       prefix = None
+       scopeId = None
+    elif len(sys.argv) == 3:
+       prefix = sys.argv[1]
+       scopeId = int(sys.argv[2])
+    else:
+       printOutHelp()
+       sys.exit()    
     app = QtWidgets.QApplication(sys.argv)
     window=ecmcScopeMainGui(prefix=prefix,scopePluginId=scopeId)
     window.show()
