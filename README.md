@@ -147,7 +147,8 @@ IOC_TEST:Plugin-Scope0-Data-Act
 
 ### ecmcScopeMainGui
 
-A simple pyqt gui is provided to visualize and control the scope [GUI](tools/ecmcScopeMainGui.py)
+A simple pyqt gui is provided to visualize and control the scope ([GUI](tools/ecmcScopeMainGui.py)).
+
 The tool recives data from the EPICS records by pyepics framework.
 
 Help screen of ecmcScopeMainGui.py
@@ -162,9 +163,8 @@ Will connect to Pvs: <prefix>Plugin-Scope<scopeId>-*
 
 ```
 Example: Start ecmcFFMainTGui.py for:
-
-predix="IOC_TEST:"
-scopePluginId=0 (the first loaded Scope plugin in the ioc
+* predix="IOC_TEST:"
+* scopePluginId=0 (the first loaded Scope plugin in the ioc)
 
 ```
 python ecmcScopeMainGui.py 'IOC_TEST:' '0'
