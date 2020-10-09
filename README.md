@@ -213,6 +213,7 @@ The value should always be 0 < value < 2*NELM (NELM = Oversamplefactor or sample
 If the value is outside these limts the trigger will be rejected. The reason could be badly syncrobized dc-clocks (see below). 
 
 ## Slave time syncing
+
 If the dc time syncronization of the slaves is not working properly then the timestamps from both trigger and analog i/o will drift apart resulting in lost triggers and currupted data.
 This could be related to that an old version of the etherlab master is installed and needs to be upgraded.
 
