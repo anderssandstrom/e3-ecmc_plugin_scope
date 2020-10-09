@@ -217,11 +217,9 @@ If the value is outside these limts the trigger will be rejected. The reason cou
 If the dc time syncronization of the slaves is not working properly then the timestamps from both trigger and analog i/o will drift apart resulting in lost triggers and currupted data.
 This could be related to that an old version of the etherlab master is installed and needs to be upgraded.
 
+NOTE: The dc clocks in the slaves start to syncronize to the reference clocks as soon as the ioc enter runtime. This procedure can take normally a few seconds but can also take minutes depending on how many slaves in the network. During this startup syncronization phase the dc clock of the trigger and the analog input slaves may be out of sync resulting in acquisition of wrong data.
+
 ### Verify dc diagnostics
-
-#### DC drift at startup
-
-The dc clocks in the slaves start to syncronize to the reference clocks as soon as the ioc enter runtime. This procedure can take normally a few seconds but can also take minutes depending on how many slaves in the network. During this startup syncronization phase the dc clock of the trigger and the analog input slaves may be out of sync resulting in acquisition of wrong data.
 
 #### ethercat master command
 
