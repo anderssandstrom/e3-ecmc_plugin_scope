@@ -232,7 +232,7 @@ This could be related to that an old version of the etherlab master is installed
 
 #### ethercat master command
 
-ethercat master dc diagnostics is ok by issueing the "etehrcat master" command (when ecmc-ioc is running):
+Check ethercat master dc diagnostics by issueing the "etehrcat master" command (when ecmc-ioc is running):
 
 ```
 dev@mcag-epics4 ~ $ ethercat master
