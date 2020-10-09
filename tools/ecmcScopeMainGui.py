@@ -31,14 +31,13 @@ import threading
 
 # Scope object pvs <prefix>Plugin-FFT<scopePluginId>-<suffixname>
 # IOC_TEST:Plugin-Scope0-MissTriggCntAct x
-# IOC_TEST:Plugin-Scope0-ScanToTriggSamples
+# IOC_TEST:Plugin-Scope0-ScanToTriggSamples x
 # IOC_TEST:Plugin-Scope0-TriggCntAct x
 # IOC_TEST:Plugin-Scope0-Enable x
 # IOC_TEST:Plugin-Scope0-DataSource x
 # IOC_TEST:Plugin-Scope0-TriggSource
 # IOC_TEST:Plugin-Scope0-NextTimeSource
 # IOC_TEST:Plugin-Scope0-Data-Act x
-
 
 class comSignal(QObject):
     data_signal = pyqtSignal(object)
@@ -105,13 +104,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #self.triggBtn = QPushButton(text = 'trigg FFT')
         #self.triggBtn.setFixedSize(100, 50)
         #self.triggBtn.clicked.connect(self.triggBtnAction)            
-
-        #self.modeCombo = QComboBox()
-        #self.modeCombo.setFixedSize(100, 50)
-        #self.modeCombo.currentIndexChanged.connect(self.newModeIndexChanged)
-        #self.modeCombo.addItem("CONT")
-        #self.modeCombo.addItem("TRIGG")
-        
+       
         # Pv names based on structure:  <prefix>Plugin-FFT<scopePluginId>-<suffixname>
         self.pvNameTriggCnt = self.buildPvName('TriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-Amp-Act"
         print("self.pvNameTriggCnt=" + self.pvNameTriggCnt)
@@ -125,6 +118,10 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #print("self.pvnNameTrigg=" + self.pvnNameTrigg)
         self.pvnNameSource = self.buildPvName('DataSource') # IOC_TEST:Plugin-FFT0-Source
         print("self.pvnNameSource=" + self.pvnNameSource)
+        self.pvNameNextTimeSource = self.buildPvName('NextTimeSource') # IOC_TEST:Plugin-FFT0-Source
+        print("self.pvNameNextTimeSource=" + self.pvNameNextTimeSource)
+        self.pvNameTriggSource = self.buildPvName('TriggSource') # IOC_TEST:Plugin-FFT0-Source
+        print("self.pvNameTriggSource=" + self.pvNameTriggSource)
         #self.pvnNameSampleRate = self.buildPvName('SampleRate-Act') # IOC_TEST:Plugin-FFT0-SampleRate-Act
         #print("self.pvnNameSampleRate=" + self.pvnNameSampleRate)
         #self.pvnNameNFFT = self.buildPvName('NFFT') # IOC_TEST:Plugin-FFT0-NFFT
@@ -143,16 +140,15 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
           self.enable = False
 
         self.sourceStr = self.pvSource.get(as_string=True)
-        #self.sampleRate = self.pvSampleRate.get()
-        #self.NFFT = self.pvNFFT.get()
-        
-        #self.scanToTriggSamples = self.pvMode.get()        
-
+        self.scanToTriggSamples = self.pvScanToTriggSamples.get()
+        self.nextTimeSourceStr = self.pvNextTimeSource.get(as_string=True)
+        self.triggSourceStr = self.pvTriggSource.get(as_string=True)
         
         # Fix layout
         self.setGeometry(300, 300, 900, 700)
         self.setWindowTitle("ecmc Scope Main plot: prefix=" + self.pvPrefixStr + " , scopeId=" + str(self.scopePluginId) + 
-                            ", source="  + self.sourceStr) # + ", rate=" + str(self.sampleRate))
+                            ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + 
+                            ', trigg=' + self.triggSourceStr) # + ", rate=" + str(self.sampleRate))
 
         layoutVert = QVBoxLayout()
         layoutVert.addWidget(self.toolbar) 
@@ -187,7 +183,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         layoutControl.addWidget(frameSamplesToTrigger)
 
         #layoutControl.addWidget(self.triggBtn)
-        #layoutControl.addWidget(self.modeCombo)
     
         frameControl = QFrame(self)
         frameControl.setFixedHeight(70)
@@ -233,16 +228,21 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         if len(self.pvnNameSource)==0:
             raise RuntimeError("pvname source must not be ''")
 
+        if self.pvNameNextTimeSource is None:
+            raise RuntimeError("pvname NextTimeSource must not be 'None'")
+        if len(self.pvNameNextTimeSource)==0:
+            raise RuntimeError("pvname NextTimeSource must not be ''")
+
+        if self.pvNameTriggSource is None:
+            raise RuntimeError("pvname TriggSource must not be 'None'")
+        if len(self.pvNameTriggSource)==0:
+            raise RuntimeError("pvname TriggSource must not be ''")
+
         #if self.pvnNameSampleRate is None:
         #    raise RuntimeError("pvname sample rate must not be 'None'")
         #if len(self.pvnNameSampleRate)==0:
         #    raise RuntimeError("pvname sample rate must not be ''")
-        
-        #if self.pvnNameNFFT is None:
-        #    raise RuntimeError("pvname NFFT must not be 'None'")
-        #if len(self.pvnNameNFFT)==0:
-        #    raise RuntimeError("pvname NFFT must not be ''")
-        
+                
         if self.pvNameScanToTriggSamples is None:
             raise RuntimeError("pvname ScanToTriggSamples must not be 'None'")
         if len(self.pvNameScanToTriggSamples)==0:
@@ -266,14 +266,17 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.pvSource = epics.PV(self.pvnNameSource)
         #print('self.pvSource: ' + self.pvSource.info)
 
+        self.pvNextTimeSource = epics.PV(self.pvNameNextTimeSource)
+        #print('self.pvNextTimeSource: ' + self.pvNextTimeSource.info)
+
+        self.pvTriggSource = epics.PV(self.pvNameTriggSource)
+        #print('self.pvTriggSource: ' + self.pvTriggSource.info)
+        
         #self.pvSampleRate = epics.PV(self.pvnNameSampleRate)
         #print('self.pvSampleRate: ' + self.pvSampleRate.info)
 
-        #self.pvNFFT = epics.PV(self.pvnNameNFFT)
-        #print('self.pvNFFT: ' + self.pvNFFT.info)
-
         self.pvScanToTriggSamples = epics.PV(self.pvNameScanToTriggSamples)
-        #print('self.pvMode: ' + self.pvMode.info)        
+        #print('self.pvScanToTriggSamples: ' + self.pvScanToTriggSamples.info)        
 
         self.pvMissTriggCnt.add_callback(self.onChangepvMissTriggCnt)
         self.pvTriggCnt.add_callback(self.onChangepvTriggCnt)
@@ -360,40 +363,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
     #    self.pvTrigg.put(True)
     #    return
 
-    #def newModeIndexChanged(self,index):
-    #    if index==0 or  index==1:
-    #        self.pvMode.put(index+1)
-    #    return
-
-    ###### Plotting
-    #def plotSpect(self):
-    #    if self.pause:            
-    #        return
-    #    if self.missTriggCnt is None:
-    #        return
-    #    if self.triggCnt is None:
-    #        return
-    #    
-    #    # print("plotSpect")
-    #    # create an axis for spectrum
-    #    if self.axSpect is None:
-    #       self.axSpect = self.figure.add_subplot(212)
-    #
-    #    # plot data 
-    #    if self.plottedLineSpect is not None:
-    #        self.plottedLineSpect.remove()
-    #
-    #    self.plottedLineSpect, = self.axSpect.plot(self.missTriggCnt,self.triggCnt, 'b*-') 
-    #    self.axSpect.grid(True)
-    #
-    #    self.axSpect.set_xlabel(self.pvNameMissTriggCnt +' [' + self.pvMissTriggCnt.units + ']')
-    #    self.axSpect.set_ylabel(self.pvNameTriggCnt +' [' + self.pvTriggCnt.units + ']')
-    #
-    #    # refresh canvas 
-    #    self.canvas.draw()
-    #
-    #    self.axSpect.autoscale(enable=False)
-
     def plotRaw(self):
         if self.pause:            
             return
@@ -412,7 +381,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #self.plottedLineRaw, = self.axRaw.plot(self.rawdataX,self.rawdataY, 'b*-') 
         self.axRaw.grid(True)
 
-        self.axRaw.set_xlabel('Time [s]')
+        self.axRaw.set_xlabel('Samples []')
         self.axRaw.set_ylabel(self.pvNameRawDataY +' [' + self.pvRawData.units + ']') 
 
         # refresh canvas 
