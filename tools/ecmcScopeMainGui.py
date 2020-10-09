@@ -47,7 +47,9 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         super(ecmcScopeMainGui, self).__init__()
         self.offline = False
         self.pvPrefixStr = prefix
+        self.pvPrefixOrigStr = prefix # For restore
         self.scopePluginId = scopePluginId
+        self.scopePluginOrigId = scopePluginId # For restore
         self.allowSave = False
         if prefix is None or scopePluginId is None:
             self.offline = True
@@ -85,24 +87,14 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         return self.pvPrefixStr + 'Plugin-Scope' + str(self.scopePluginId) + '-' + suffixname 
 
     def buildPvNames(self):
-        if self.offline:
-           self.pvNameTriggCnt = None
-           self.pvNameMissTriggCnt = None
-           self.pvNameRawDataY = None
-           self.pvnNameEnable = None
-           self.pvnNameSource = None
-           self.pvNameNextTimeSource = None
-           self.pvNameTriggSource = None
-           self.pvNameScanToTriggSamples = None
-        else:
-           self.pvNameTriggCnt = self.buildPvName('TriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-Amp-Act"
-           self.pvNameMissTriggCnt = self.buildPvName('MissTriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-X-Axis-Act"
-           self.pvNameRawDataY = self.buildPvName('Data-Act') # IOC_TEST:Plugin-FFT0-Raw-Data-Act
-           self.pvnNameEnable = self.buildPvName('Enable') # IOC_TEST:Plugin-FFT0-Enable
-           self.pvnNameSource = self.buildPvName('DataSource') # IOC_TEST:Plugin-FFT0-Source
-           self.pvNameNextTimeSource = self.buildPvName('NextTimeSource') # IOC_TEST:Plugin-FFT0-Source
-           self.pvNameTriggSource = self.buildPvName('TriggSource') # IOC_TEST:Plugin-FFT0-Source
-           self.pvNameScanToTriggSamples = self.buildPvName('ScanToTriggSamples') # IOC_TEST:Plugin-FFT0-Mode-RB
+        self.pvNameTriggCnt = self.buildPvName('TriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-Amp-Act"
+        self.pvNameMissTriggCnt = self.buildPvName('MissTriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-X-Axis-Act"
+        self.pvNameRawDataY = self.buildPvName('Data-Act') # IOC_TEST:Plugin-FFT0-Raw-Data-Act
+        self.pvnNameEnable = self.buildPvName('Enable') # IOC_TEST:Plugin-FFT0-Enable
+        self.pvnNameSource = self.buildPvName('DataSource') # IOC_TEST:Plugin-FFT0-Source
+        self.pvNameNextTimeSource = self.buildPvName('NextTimeSource') # IOC_TEST:Plugin-FFT0-Source
+        self.pvNameTriggSource = self.buildPvName('TriggSource') # IOC_TEST:Plugin-FFT0-Source
+        self.pvNameScanToTriggSamples = self.buildPvName('ScanToTriggSamples') # IOC_TEST:Plugin-FFT0-Mode-RB
     
     def createWidgets(self):
         self.figure = plt.figure()
@@ -367,6 +359,9 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         if self.pause:
             self.pauseBtn.setStyleSheet("background-color: red")
         else:
+            self.pvPrefixStr = self.pvPrefixOrigStr # For restore if file was opened
+            self.scopePluginId = self.scopePluginOrigId # For restore
+            self.buildPvNames()
             self.pauseBtn.setStyleSheet("background-color: green")
         
         # Retrigger plots with newest values
@@ -413,8 +408,9 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.pvPrefixStr              = str(npzfile['pvPrefixStr'])
         self.scopePluginId            = npzfile['scopePluginId']
         
-        if self.offline: # do not overwrite if online mode
-           self.buildPvNames()
+        self.buildPvNames()
+
+        if self.offline: # do not overwrite if online mode        
            self.sourceStr                = str(npzfile['sourceStr'])
            self.nextTimeSourceStr        = str(npzfile['nextTimeSourceStr'])
            self.triggSourceStr           = str(npzfile['triggSourceStr'])
