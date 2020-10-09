@@ -60,13 +60,12 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.comSignalScanToTriggSamples = comSignal()
         self.comSignalScanToTriggSamples.data_signal.connect(self.callbackFuncScanToTriggSamples)
 
-        self.pause = 0
-
+        self.pause = 0        
         # Data Arrays
         self.missTriggCnt = None
         self.triggCnt = None
         self.rawdataY = None
-        self.rawdataX = None
+        #self.rawdataX = None
 
         self.enable = None
 
@@ -81,10 +80,21 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.pauseBtn.setFixedSize(100, 50)
         self.pauseBtn.clicked.connect(self.pauseBtnAction)        
         self.pauseBtn.setStyleSheet("background-color: green")
+        #self.pauseBtn.setCheckable(True) 
+
+        self.openBtn = QPushButton(text = 'open data')
+        self.openBtn.setFixedSize(100, 50)
+        self.openBtn.clicked.connect(self.openBtnAction)
+
 
         self.enableBtn = QPushButton(text = 'enable Scope')
         self.enableBtn.setFixedSize(100, 50)
-        self.enableBtn.clicked.connect(self.enableBtnAction)            
+        self.enableBtn.clicked.connect(self.enableBtnAction)
+        #self.enableBtn.setCheckable(True) 
+
+        self.saveBtn = QPushButton(text = 'save data')
+        self.saveBtn.setFixedSize(100, 50)
+        self.saveBtn.clicked.connect(self.saveBtnAction)
 
         self.triggCntLineEdit = QLineEdit(text = '0')
         self.triggCntLineEdit.setEnabled(False)
@@ -181,6 +191,8 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         layoutControl.addWidget(frameTrigger)
         layoutControl.addWidget(frameMissedTrigger)
         layoutControl.addWidget(frameSamplesToTrigger)
+        layoutControl.addWidget(self.saveBtn)
+        layoutControl.addWidget(self.openBtn)
 
         #layoutControl.addWidget(self.triggBtn)
     
@@ -350,6 +362,35 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
             self.comSignalRawData.data_signal.emit(self.rawdataY)
         return
 
+    def openBtnAction(self):
+        self.pause = 0  # pause while open
+        self.pauseBtnAction()
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '.', "Data files (*.npz)")
+        if fname is None:
+            return
+        if np.size(fname) != 2:            
+            return
+        if len(fname[0])<=0:
+            return        
+        
+        npzfile = np.load(fname[0])
+
+        # verify scope plugin
+        if npzfile['plugin']!="Scope":
+            print ("Invalid data type (wrong plugin type)")
+        # File valid 
+        self.rawdataY           = npzfile['rawdataY']
+        self.triggCnt           = npzfile['triggCnt']
+        self.missTriggCnt       = npzfile['missTriggCnt']
+        self.scanToTriggSamples = npzfile['scanToSample']
+        # trigg draw 
+        self.comSignalScanToTriggSamples.data_signal.emit(self.scanToTriggSamples)
+        self.comSignalMissTriggCnt.data_signal.emit(self.missTriggCnt)
+        self.comSignalTriggCnt.data_signal.emit(self.triggCnt)        
+        self.comSignalRawData.data_signal.emit(self.rawdataY)        
+
+        return
+
     def enableBtnAction(self):
         self.enable = not self.enable
         self.pvEnable.put(self.enable)
@@ -357,6 +398,17 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
           self.enableBtn.setStyleSheet("background-color: green")
         else:
           self.enableBtn.setStyleSheet("background-color: red")
+        return
+
+    def saveBtnAction(self):
+        fname = QFileDialog.getSaveFileName(self, 'Save file', '.', "Data files (*.npz)")
+        if fname is None:
+            return
+        if np.size(fname) != 2:            
+            return
+        if len(fname[0])<=0:
+            return
+        np.savez(fname[0],plugin="Scope", rawdataY=self.rawdataY,triggCnt=self.triggCnt,missTriggCnt=self.missTriggCnt,scanToSample=self.scanToTriggSamples)
         return
 
     #def triggBtnAction(self):
