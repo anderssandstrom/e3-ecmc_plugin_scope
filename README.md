@@ -143,6 +143,41 @@ IOC_TEST:Plugin-Scope0-NextTimeSource
 IOC_TEST:Plugin-Scope0-Data-Act
 ```
 
+## GUI
+
+### ecmcScopeMainGui
+
+A simple pyqt gui is provided to visualize and control the scope [GUI](tools/ecmcScopeMainGui.py)
+The tool recives data from the EPICS records by pyepics framework.
+
+Help screen of ecmcScopeMainGui.py
+```
+$ python ecmcScopeMainGui.py
+ecmcScopeMainGui: Plots waveforms of FFT data (updates on Y data callback). 
+python ecmcScopeMainGui.py <prefix> <fftId>
+<prefix>  : Ioc prefix ('IOC_TEST:')
+<scopeId> : Id of scope plugin ('0')
+example   : python ecmcScopeMainGui.py 'IOC_TEST:' '0'
+Will connect to Pvs: <prefix>Plugin-Scope<scopeId>-*
+
+```
+Example: Start ecmcFFMainTGui.py for:
+
+predix="IOC_TEST:"
+scopePluginId=0 (the first loaded Scope plugin in the ioc
+
+```
+python ecmcScopeMainGui.py 'IOC_TEST:' '0'
+```
+![gui.py](docs/gui.png)
+
+### Needed packages:
+* python 3.5
+* epics
+* PyQt5
+* numpy 
+* matplotlib
+
 ## Plugin info
 
 ```
