@@ -30,14 +30,14 @@ import matplotlib.pyplot as plt
 import threading
 
 # Scope object pvs <prefix>Plugin-FFT<scopePluginId>-<suffixname>
-# IOC_TEST:Plugin-Scope0-MissTriggCntAct
+# IOC_TEST:Plugin-Scope0-MissTriggCntAct x
 # IOC_TEST:Plugin-Scope0-ScanToTriggSamples
-# IOC_TEST:Plugin-Scope0-TriggCntAct
-# IOC_TEST:Plugin-Scope0-Enable
-# IOC_TEST:Plugin-Scope0-DataSource
+# IOC_TEST:Plugin-Scope0-TriggCntAct x
+# IOC_TEST:Plugin-Scope0-Enable x
+# IOC_TEST:Plugin-Scope0-DataSource x
 # IOC_TEST:Plugin-Scope0-TriggSource
 # IOC_TEST:Plugin-Scope0-NextTimeSource
-# IOC_TEST:Plugin-Scope0-Data-Act
+# IOC_TEST:Plugin-Scope0-Data-Act x
 
 
 class comSignal(QObject):
@@ -58,8 +58,8 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.comSignalRawData.data_signal.connect(self.callbackFuncrawData)
         self.comSignalEnable = comSignal()
         self.comSignalEnable.data_signal.connect(self.callbackFuncEnable)
-        #self.comSignalMode = comSignal()
-        #self.comSignalMode.data_signal.connect(self.callbackFuncMode)
+        self.comSignalScanToTriggSamples = comSignal()
+        self.comSignalScanToTriggSamples.data_signal.connect(self.callbackFuncScanToTriggSamples)
 
         self.pause = 0
 
@@ -89,11 +89,18 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
 
         self.triggCntLineEdit = QLineEdit(text = '0')
         self.triggCntLineEdit.setEnabled(False)
-        self.triggCntLineEdit.setFixedSize(100, 50)
+        self.triggCntLineEdit.setFixedSize(150, 30)
+        self.triggCntLabel = QLabel(text = "triggers []:")
 
         self.missTriggCntLineEdit = QLineEdit(text = '0')
         self.missTriggCntLineEdit.setEnabled(False)
-        self.missTriggCntLineEdit.setFixedSize(100, 50)
+        self.missTriggCntLineEdit.setFixedSize(150, 30)
+        self.missTriggCntLabel = QLabel(text = "missed []:")
+
+        self.scanToTriggSamplesLineEdit = QLineEdit(text = '0')
+        self.scanToTriggSamplesLineEdit.setEnabled(False)
+        self.scanToTriggSamplesLineEdit.setFixedSize(150, 30)
+        self.scanToTriggSamplesLabel = QLabel(text = "Sample offset []:")
 
         #self.triggBtn = QPushButton(text = 'trigg FFT')
         #self.triggBtn.setFixedSize(100, 50)
@@ -122,8 +129,8 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #print("self.pvnNameSampleRate=" + self.pvnNameSampleRate)
         #self.pvnNameNFFT = self.buildPvName('NFFT') # IOC_TEST:Plugin-FFT0-NFFT
         #print("self.pvnNameNFFT=" + self.pvnNameNFFT)
-        #self.pvnNameMode = self.buildPvName('Mode-RB') # IOC_TEST:Plugin-FFT0-Mode-RB
-        #print("self.pvnNameMode=" + self.pvnNameMode)
+        self.pvNameScanToTriggSamples = self.buildPvName('ScanToTriggSamples') # IOC_TEST:Plugin-FFT0-Mode-RB
+        print("self.pvNameScanToTriggSamples=" + self.pvNameScanToTriggSamples)
 
         self.connectPvs()
         
@@ -139,18 +146,8 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #self.sampleRate = self.pvSampleRate.get()
         #self.NFFT = self.pvNFFT.get()
         
-        #self.mode = self.pvMode.get()        
+        #self.scanToTriggSamples = self.pvMode.get()        
 
-        #self.modeStr = "NO_MODE"
-        #self.triggBtn.setEnabled(False) # Only enable if mode = TRIGG = 2
-        #if self.mode == 1:
-        #    self.modeStr = "CONT"
-        #    self.modeCombo.setCurrentIndex(self.mode-1) # Index starta t zero
-
-        #if self.mode == 2:
-        #    self.modeStr = "TRIGG"
-        #    self.triggBtn.setEnabled(True)
-        #    self.modeCombo.setCurrentIndex(self.mode-1) # Index starta t zero
         
         # Fix layout
         self.setGeometry(300, 300, 900, 700)
@@ -161,12 +158,34 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         layoutVert.addWidget(self.toolbar) 
         layoutVert.addWidget(self.canvas) 
 
+        layoutTrigger = QVBoxLayout()
+        frameTrigger = QFrame(self)
+        frameTrigger.setFixedWidth(100)
+        layoutTrigger.addWidget(self.triggCntLabel)
+        layoutTrigger.addWidget(self.triggCntLineEdit)
+        frameTrigger.setLayout(layoutTrigger)
+
+        layoutMissedTrigger = QVBoxLayout()
+        frameMissedTrigger = QFrame(self)
+        frameMissedTrigger.setFixedWidth(100)
+        layoutMissedTrigger.addWidget(self.missTriggCntLabel)
+        layoutMissedTrigger.addWidget(self.missTriggCntLineEdit)
+        frameMissedTrigger.setLayout(layoutMissedTrigger)
+
+        layoutSamplesToTrigger = QVBoxLayout()
+        frameSamplesToTrigger = QFrame(self)
+        frameSamplesToTrigger.setFixedWidth(100)
+        layoutSamplesToTrigger.addWidget(self.scanToTriggSamplesLabel)
+        layoutSamplesToTrigger.addWidget(self.scanToTriggSamplesLineEdit)
+        frameSamplesToTrigger.setLayout(layoutSamplesToTrigger)
+
         layoutControl = QHBoxLayout() 
         layoutControl.addWidget(self.pauseBtn)
         layoutControl.addWidget(self.enableBtn)
-        layoutControl.addWidget(self.triggCntLineEdit)
-        layoutControl.addWidget(self.missTriggCntLineEdit)
-    
+        layoutControl.addWidget(frameTrigger)
+        layoutControl.addWidget(frameMissedTrigger)
+        layoutControl.addWidget(frameSamplesToTrigger)
+
         #layoutControl.addWidget(self.triggBtn)
         #layoutControl.addWidget(self.modeCombo)
     
@@ -224,10 +243,10 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #if len(self.pvnNameNFFT)==0:
         #    raise RuntimeError("pvname NFFT must not be ''")
         
-        #if self.pvnNameMode is None:
-        #    raise RuntimeError("pvname mode must not be 'None'")
-        #if len(self.pvnNameMode)==0:
-        #    raise RuntimeError("pvname mode must not be ''")
+        if self.pvNameScanToTriggSamples is None:
+            raise RuntimeError("pvname ScanToTriggSamples must not be 'None'")
+        if len(self.pvNameScanToTriggSamples)==0:
+            raise RuntimeError("pvname ScanToTriggSamples must not be ''")
         
         self.pvMissTriggCnt = epics.PV(self.pvNameMissTriggCnt)
         #print('self.pvMissTriggCnt: ' + self.pvMissTriggCnt.info)
@@ -253,20 +272,20 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         #self.pvNFFT = epics.PV(self.pvnNameNFFT)
         #print('self.pvNFFT: ' + self.pvNFFT.info)
 
-        #self.pvMode = epics.PV(self.pvnNameMode)
+        self.pvScanToTriggSamples = epics.PV(self.pvNameScanToTriggSamples)
         #print('self.pvMode: ' + self.pvMode.info)        
 
         self.pvMissTriggCnt.add_callback(self.onChangepvMissTriggCnt)
         self.pvTriggCnt.add_callback(self.onChangepvTriggCnt)
         self.pvRawData.add_callback(self.onChangePvrawData)
         self.pvEnable.add_callback(self.onChangePvEnable)
-        #self.pvMode.add_callback(self.onChangePvMode)
+        self.pvScanToTriggSamples.add_callback(self.onChangePVScanToTriggSamples)
 
         QCoreApplication.processEvents()
     
     ###### Pv monitor callbacks
-    #def onChangePvMode(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
-    #    self.comSignalMode.data_signal.emit(value)
+    def onChangePVScanToTriggSamples(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
+        self.comSignalScanToTriggSamples.data_signal.emit(value)
 
     def onChangePvEnable(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
         self.comSignalEnable.data_signal.emit(value)
@@ -281,24 +300,10 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.comSignalRawData.data_signal.emit(value)        
 
     ###### Signal callbacks    
-    #def callbackFuncMode(self, value):
-    #    if value < 1 or value> 2:
-    #        self.modeStr = "NO_MODE"
-    #        print('callbackFuncMode: Error Invalid mode.')
-    #        return
-    #
-    #    self.mode = value
-    #    self.modeCombo.setCurrentIndex(self.mode-1) # Index starta t zero
-    #    
-    #    if self.mode == 1:
-    #        self.modeStr = "CONT"
-    #        self.triggBtn.setEnabled(False) # Only enable if mode = TRIGG = 2
-    #                    
-    #    if self.mode == 2:
-    #       self.modeStr = "TRIGG"
-    #       self.triggBtn.setEnabled(True)
-    #            
-    #    return
+    def callbackFuncScanToTriggSamples(self, value):    
+        self.scanToTriggSamples = value
+        self.scanToTriggSamplesLineEdit.setText(str(self.scanToTriggSamples))
+        return
 
     def callbackFuncEnable(self, value):
         self.enable = value        
