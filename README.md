@@ -16,21 +16,14 @@ https://github.com/paulscherrerinstitute/ecmccfg (ot local ess fork https://gith
 The main functionality of this plugin is triggerd sampling of ethercat data from oversampled and timestamped ethercat slaves, like:
 
 Data:
-
 * EL3702
-
 * EL3742
-
 * EL5101-0011
-
 * ELM3604
-
 * ....
 
 Trigger:
-
 * EL1252
-
 * EL1252-0050
 
 ## Loading of Scope plugin in ecmc: 
@@ -60,21 +53,16 @@ Note: If another plugin is loaded in between the loading of Scope plugins, it wi
 ## Configuration:
 
 Three links to ethercat data needs to be defined:
-1. Source data
-
-2. Source data timestamp
-
-3. Trigger timestamp
+* Source data
+* Source data timestamp
+* Trigger timestamp
 
 All these three links needs to be defined in the plugin startup configuration string.
 
 Other configurations that can be made:
-
-4. Data elements to collect
-
-5. Debug printouts 
-
-6. Enable
+* Data elements to collect
+* Debug printouts 
+* Enable
 
   
 ### Source data (mandatory)
@@ -94,7 +82,7 @@ The source timestamp is defined by the "SOURCE_NEXTTIME" configuration string:
 ``` 
 SOURCE_NEXTTIME=ec0.s2.NEXT_TIME;
 ``` 
-This timestamp can be either in 32bit or 64bit format. If 32 bits then "NEXT_TIME" is always considered to be later than the trigger timestamp.
+This timestamp can be either in 32bit or 64bit format. The "NEXT_TIME" is always considered to be later than the trigger timestamp.
 
 ### Trigger (mandatory)
 
@@ -221,18 +209,21 @@ IOC_TEST:Plugin-Scope0-ScanToTriggSamples 2020-09-30 08:40:21.282872 93
 IOC_TEST:Plugin-Scope0-ScanToTriggSamples 2020-09-30 08:40:21.362859 99  
 IOC_TEST:Plugin-Scope0-ScanToTriggSamples 2020-09-30 08:40:21.470863 102  
 ```
-The value shoud always be 0 < value < 2*NELM which means that the trigger occured up to 2*NELM ago.
+The value should always be 0 < value < 2*NELM (NELM = Oversamplefactor or samples per ethercat cycle) which means that the trigger occured up to 2*NELM ago.
 If the value is outside these limts the trigger will be rejected. The reason could be badly syncrobized dc-clocks (see below). 
 
 ## Slave time syncing
+
 If the dc time syncronization of the slaves is not working properly then the timestamps from both trigger and analog i/o will drift apart resulting in lost triggers and currupted data.
 This could be related to that an old version of the etherlab master is installed and needs to be upgraded.
+
+NOTE: The dc clocks in the slaves start to syncronize to the reference clocks as soon as the ioc enter runtime. This procedure can take normally a few seconds but can also take minutes depending on how many slaves in the network. During this startup syncronization phase the dc clock of the trigger and the analog input slaves may be out of sync resulting in acquisition of wrong data.
 
 ### Verify dc diagnostics
 
 #### ethercat master command
 
-ethercat master dc diagnostics is ok by issueing the "etehrcat master" command (when ecmc-ioc is running):
+Check ethercat master dc diagnostics by issueing the "etehrcat master" command (when ecmc-ioc is running):
 
 ```
 dev@mcag-epics4 ~ $ ethercat master
@@ -355,3 +346,4 @@ Check the following for both slaves:
 * "Distributed clocks" is "yes" and 32 or 64 bit
 
 If status of the above commands are not according to the examples then the etherlab master probbaly needs to be upgraded/reinstalled. Use the etherlab master repo: https://github.com/icshwi/etherlabmaster/ (or for ESS install via cs-entry.)
+
