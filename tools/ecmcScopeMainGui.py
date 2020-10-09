@@ -182,21 +182,15 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.setLayout(layoutVert)
 
     def setStatusOfWidgets(self):
+
         self.saveBtn.setEnabled(self.allowSave)
         if self.offline:
             self.enableBtn.setStyleSheet("background-color: grey")
             self.enableBtn.setEnabled(False)
             self.pauseBtn.setStyleSheet("background-color: grey")
             self.pauseBtn.setEnabled(False)
-            
-            self.setWindowTitle("ecmc Scope Main plot: Offline")
-            
-            #self.sourceStr = "Offline"
-            #self.scanToTriggSamples = 0
-            #self.nextTimeSourceSt = "Offline"
-            #self.triggSourceStr = "Offline"
+            self.setWindowTitle("ecmc Scope Main plot: Offline")            
         else:
-
             self.enableBtn.setEnabled(True)
             self.pauseBtn.setEnabled(True)
             # Check actual value of pvs
@@ -211,9 +205,8 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
             self.scanToTriggSamples = self.pvScanToTriggSamples.get()
             self.nextTimeSourceStr = self.pvNextTimeSource.get(as_string=True)
             self.triggSourceStr = self.pvTriggSource.get(as_string=True)
-            self.setWindowTitle("ecmc Scope Main plot: prefix=" + self.pvPrefixStr + " , scopeId=" + str(self.scopePluginId) + 
-                        ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + 
-                        ', trigg=' + self.triggSourceStr)
+            titleStr = "ecmc Scope Main plot: prefix=" + str(self.pvPrefixStr) + " , scopeId=" + str(self.scopePluginId) + ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + ", trigg=" + self.triggSourceStr            
+            self.setWindowTitle(titleStr)
 
 
     def connectPvs(self):        
@@ -417,15 +410,14 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.triggCnt                 = npzfile['triggCnt']
         self.missTriggCnt             = npzfile['missTriggCnt']
         self.scanToTriggSamples       = npzfile['scanToSample']
-        self.pvPrefixStr              = npzfile['pvPrefixStr']
+        self.pvPrefixStr              = str(npzfile['pvPrefixStr'])
         self.scopePluginId            = npzfile['scopePluginId']
-        self.sourceStr                = npzfile['sourceStr']
-        self.scanToTriggSamples       = npzfile['scanToTriggSamles']
-        self.nextTimeSourceStr        = npzfile['nextTimeSourceStr']
-        self.triggSourceStr           = npzfile['triggSourceStr']
-
+        
         if self.offline: # do not overwrite if online mode
            self.buildPvNames()
+           self.sourceStr                = str(npzfile['sourceStr'])
+           self.nextTimeSourceStr        = str(npzfile['nextTimeSourceStr'])
+           self.triggSourceStr           = str(npzfile['triggSourceStr'])
 
         # trigg draw
         self.comSignalRawData.data_signal.emit(self.rawdataY)
@@ -454,7 +446,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
                  pvPrefixStr              = self.pvPrefixStr,
                  scopePluginId            = self.scopePluginId,
                  sourceStr                = self.sourceStr,
-                 scanToTriggSamples       = self.scanToTriggSamples,
                  nextTimeSourceStr        = self.nextTimeSourceStr,
                  triggSourceStr           = self.triggSourceStr)
 
