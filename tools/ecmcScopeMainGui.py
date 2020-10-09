@@ -58,7 +58,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
             self.offline = False
             self.pause = False            
 
-
         # Callbacks through signals
         self.comSignalMissTriggCnt = comSignal()
         self.comSignalMissTriggCnt.data_signal.connect(self.callbackFuncMissTriggCnt)
@@ -76,6 +75,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.triggCnt = None
         self.rawdataY = None
         self.enable = None
+        
         self.createWidgets()
         self.connectPvs()
         self.setStatusOfWidgets()
@@ -417,16 +417,15 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.triggCnt                 = npzfile['triggCnt']
         self.missTriggCnt             = npzfile['missTriggCnt']
         self.scanToTriggSamples       = npzfile['scanToSample']
+        self.pvPrefixStr              = npzfile['pvPrefixStr']
+        self.scopePluginId            = npzfile['scopePluginId']
+        self.sourceStr                = npzfile['sourceStr']
+        self.scanToTriggSamples       = npzfile['scanToTriggSamles']
+        self.nextTimeSourceStr        = npzfile['nextTimeSourceStr']
+        self.triggSourceStr           = npzfile['triggSourceStr']
 
         if self.offline: # do not overwrite if online mode
-           self.pvNameTriggCnt           = npzfile['pvNameTriggCnt']
-           self.pvNameMissTriggCnt       = npzfile['pvNameMissTriggCnt']
-           self.pvNameRawDataY           = npzfile['pvNameRawDataY']
-           self.pvnNameEnable            = npzfile['pvnNameEnable']
-           self.pvnNameSource            = npzfile['pvnNameSource']
-           self.pvNameNextTimeSource     = npzfile['pvNameNextTimeSource']
-           self.pvNameTriggSource        = npzfile['pvNameTriggSource']
-           self.pvNameScanToTriggSamples = npzfile['pvNameScanToTriggSamples']
+           self.buildPvNames()
 
         # trigg draw
         self.comSignalRawData.data_signal.emit(self.rawdataY)
@@ -452,14 +451,13 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
                  triggCnt                 = self.triggCnt,
                  missTriggCnt             = self.missTriggCnt,
                  scanToSample             = self.scanToTriggSamples,
-                 pvNameTriggCnt           = self.pvNameTriggCnt,
-                 pvNameMissTriggCnt       = self.pvNameMissTriggCnt,
-                 pvNameRawDataY           = self.pvNameRawDataY,
-                 pvnNameEnable            = self.pvnNameEnable,
-                 pvnNameSource            = self.pvnNameSource,
-                 pvNameNextTimeSource     = self.pvNameNextTimeSource,
-                 pvNameTriggSource        = self.pvNameTriggSource,
-                 pvNameScanToTriggSamples = self.pvNameScanToTriggSamples)
+                 pvPrefixStr              = self.pvPrefixStr,
+                 scopePluginId            = self.scopePluginId,
+                 sourceStr                = self.sourceStr,
+                 scanToTriggSamples       = self.scanToTriggSamples,
+                 nextTimeSourceStr        = self.nextTimeSourceStr,
+                 triggSourceStr           = self.triggSourceStr)
+
         return
 
     def enableBtnAction(self):
