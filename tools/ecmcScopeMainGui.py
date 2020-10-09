@@ -48,7 +48,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.offline = False
         self.pvPrefixStr = prefix
         self.scopePluginId = scopePluginId
-
+        self.allowSave = False
         if prefix is None or scopePluginId is None:
             self.offline = True
             self.pause = True
@@ -110,7 +110,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.axRaw = None
         self.canvas = FigureCanvas(self.figure)   
         self.toolbar = NavigationToolbar(self.canvas, self) 
-        self.pauseBtn = QPushButton(text = 'pause')
+        self.pauseBtn = QPushButton(text = 'on/off-line')
         self.pauseBtn.setFixedSize(100, 50)
         self.pauseBtn.clicked.connect(self.pauseBtnAction)        
         self.pauseBtn.setStyleSheet("background-color: green")        
@@ -182,6 +182,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.setLayout(layoutVert)
 
     def setStatusOfWidgets(self):
+        self.saveBtn.setEnabled(self.allowSave)
         if self.offline:
             self.enableBtn.setStyleSheet("background-color: grey")
             self.enableBtn.setEnabled(False)
@@ -309,19 +310,29 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
     
     ###### Pv monitor callbacks
     def onChangePVScanToTriggSamples(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
+        if self.pause:
+            return
         self.comSignalScanToTriggSamples.data_signal.emit(value)
 
     def onChangePvEnable(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
+        if self.pause:
+            return
         self.comSignalEnable.data_signal.emit(value)
 
     def onChangepvMissTriggCnt(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
+        if self.pause:
+            return
         self.comSignalMissTriggCnt.data_signal.emit(value)
 
     def onChangepvTriggCnt(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
+        if self.pause:
+            return
         self.comSignalTriggCnt.data_signal.emit(value)        
 
     def onChangePvrawData(self,pvname=None, value=None, char_value=None,timestamp=None, **kw):
-        self.comSignalRawData.data_signal.emit(value)        
+        if self.pause:
+            return
+        self.comSignalRawData.data_signal.emit(value)
 
     ###### Signal callbacks    
     def callbackFuncScanToTriggSamples(self, value):    
@@ -364,8 +375,9 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
             self.pauseBtn.setStyleSheet("background-color: red")
         else:
             self.pauseBtn.setStyleSheet("background-color: green")
-            # Retrigger plots with newest values
-        if not self. offline:
+        
+        # Retrigger plots with newest values
+        if not self.offline:
            self.missTriggCnt = self.pvMissTriggCnt.get()
            self.triggCnt     = self.pvTriggCnt.get()
            self.rawdataY     = self.pvRawData.get()
@@ -376,12 +388,14 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.comSignalMissTriggCnt.data_signal.emit(self.missTriggCnt)
         self.comSignalTriggCnt.data_signal.emit(self.triggCnt)        
         self.comSignalRawData.data_signal.emit(self.rawdataY)
+
         return
 
     def openBtnAction(self):
         if not self.offline:
-           self.pause = 0  # pause while open if online
-           self.pauseBtnAction()
+           self.pause = 1  # pause while open if online
+           self.pauseBtn.setStyleSheet("background-color: red")
+           QCoreApplication.processEvents()
                    
         fname = QFileDialog.getOpenFileName(self, 'Open file', '.', "Data files (*.npz)")
         if fname is None:
@@ -396,6 +410,8 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         # verify scope plugin
         if npzfile['plugin'] != "Scope":
             print ("Invalid data type (wrong plugin type)")
+            return
+        
         # File valid 
         self.rawdataY                 = npzfile['rawdataY']
         self.triggCnt                 = npzfile['triggCnt']
@@ -413,10 +429,10 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
            self.pvNameScanToTriggSamples = npzfile['pvNameScanToTriggSamples']
 
         # trigg draw
+        self.comSignalRawData.data_signal.emit(self.rawdataY)
         self.comSignalScanToTriggSamples.data_signal.emit(self.scanToTriggSamples)
         self.comSignalMissTriggCnt.data_signal.emit(self.missTriggCnt)
         self.comSignalTriggCnt.data_signal.emit(self.triggCnt)        
-        self.comSignalRawData.data_signal.emit(self.rawdataY)
         
         self.setStatusOfWidgets()
         return
@@ -457,8 +473,6 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
 
     # Plots 
     def plotRaw(self):
-        if self.pause and not self.offline:            
-            return
         if self.rawdataY is None:
             return
         
@@ -481,8 +495,10 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
            self.axRaw.set_ylabel(self.pvNameRawDataY  +' [' + self.pvRawData.units + ']') 
         # refresh canvas 
         self.canvas.draw()
-
         self.axRaw.autoscale(enable=True)
+        self.allowSave = True
+        self.saveBtn.setEnabled(self.allowSave)
+
 
 def printOutHelp():
   print("ecmcScopeMainGui: Plots waveforms of FFT data (updates on Y data callback). ")
