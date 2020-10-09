@@ -117,27 +117,27 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
        
         # Pv names based on structure:  <prefix>Plugin-FFT<scopePluginId>-<suffixname>
         self.pvNameTriggCnt = self.buildPvName('TriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-Amp-Act"
-        print("self.pvNameTriggCnt=" + self.pvNameTriggCnt)
+        #print("self.pvNameTriggCnt=" + self.pvNameTriggCnt)
         self.pvNameMissTriggCnt = self.buildPvName('MissTriggCntAct') # "IOC_TEST:Plugin-FFT1-Spectrum-X-Axis-Act"
-        print("self.pvNameMissTriggCnt=" + self.pvNameMissTriggCnt)        
+        #print("self.pvNameMissTriggCnt=" + self.pvNameMissTriggCnt)        
         self.pvNameRawDataY = self.buildPvName('Data-Act') # IOC_TEST:Plugin-FFT0-Raw-Data-Act
-        print("self.pvNameRawDataY=" + self.pvNameRawDataY)        
+        #print("self.pvNameRawDataY=" + self.pvNameRawDataY)        
         self.pvnNameEnable = self.buildPvName('Enable') # IOC_TEST:Plugin-FFT0-Enable
-        print("self.pvnNameEnable=" + self.pvnNameEnable)
+        #print("self.pvnNameEnable=" + self.pvnNameEnable)
         #self.pvnNameTrigg = self.buildPvName('Trigg') # IOC_TEST:Plugin-FFT0-Trigg
         #print("self.pvnNameTrigg=" + self.pvnNameTrigg)
         self.pvnNameSource = self.buildPvName('DataSource') # IOC_TEST:Plugin-FFT0-Source
-        print("self.pvnNameSource=" + self.pvnNameSource)
+        #print("self.pvnNameSource=" + self.pvnNameSource)
         self.pvNameNextTimeSource = self.buildPvName('NextTimeSource') # IOC_TEST:Plugin-FFT0-Source
-        print("self.pvNameNextTimeSource=" + self.pvNameNextTimeSource)
+        #print("self.pvNameNextTimeSource=" + self.pvNameNextTimeSource)
         self.pvNameTriggSource = self.buildPvName('TriggSource') # IOC_TEST:Plugin-FFT0-Source
-        print("self.pvNameTriggSource=" + self.pvNameTriggSource)
+        #print("self.pvNameTriggSource=" + self.pvNameTriggSource)
         #self.pvnNameSampleRate = self.buildPvName('SampleRate-Act') # IOC_TEST:Plugin-FFT0-SampleRate-Act
         #print("self.pvnNameSampleRate=" + self.pvnNameSampleRate)
         #self.pvnNameNFFT = self.buildPvName('NFFT') # IOC_TEST:Plugin-FFT0-NFFT
         #print("self.pvnNameNFFT=" + self.pvnNameNFFT)
         self.pvNameScanToTriggSamples = self.buildPvName('ScanToTriggSamples') # IOC_TEST:Plugin-FFT0-Mode-RB
-        print("self.pvNameScanToTriggSamples=" + self.pvNameScanToTriggSamples)
+        #print("self.pvNameScanToTriggSamples=" + self.pvNameScanToTriggSamples)
 
         self.connectPvs()
         
@@ -156,9 +156,7 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         
         # Fix layout
         self.setGeometry(300, 300, 900, 700)
-        self.setWindowTitle("ecmc Scope Main plot: prefix=" + self.pvPrefixStr + " , scopeId=" + str(self.scopePluginId) + 
-                            ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + 
-                            ', trigg=' + self.triggSourceStr) # + ", rate=" + str(self.sampleRate))
+        self.writeTitleGui()
 
         layoutVert = QVBoxLayout()
         layoutVert.addWidget(self.toolbar) 
@@ -204,6 +202,12 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
 
         self.setLayout(layoutVert)                
         return
+
+
+    def writeTitleGui(self):
+        self.setWindowTitle("ecmc Scope Main plot: prefix=" + self.pvPrefixStr + " , scopeId=" + str(self.scopePluginId) + 
+                    ", source="  + self.sourceStr + ', nexttime=' + self.nextTimeSourceStr + 
+                    ', trigg=' + self.triggSourceStr)
 
     def buildPvName(self, suffixname):
         return self.pvPrefixStr + 'Plugin-Scope' + str(self.scopePluginId) + '-' + suffixname 
@@ -383,12 +387,22 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         self.triggCnt           = npzfile['triggCnt']
         self.missTriggCnt       = npzfile['missTriggCnt']
         self.scanToTriggSamples = npzfile['scanToSample']
+        self.pvNameTriggCnt =npzfile['pvNameTriggCnt']
+        self.pvNameMissTriggCnt =npzfile['pvNameMissTriggCnt']
+        self.pvNameRawDataY =npzfile['pvNameRawDataY']
+        self.pvnNameEnable =npzfile['pvnNameEnable']
+        self.pvnNameSource =npzfile['pvnNameSource']
+        self.pvNameNextTimeSource =npzfile['pvNameNextTimeSource']
+        self.pvNameTriggSource =npzfile['pvNameTriggSource']
+        self.pvNameScanToTriggSamples =npzfile['pvNameScanToTriggSamples']
+
         # trigg draw 
         self.comSignalScanToTriggSamples.data_signal.emit(self.scanToTriggSamples)
         self.comSignalMissTriggCnt.data_signal.emit(self.missTriggCnt)
         self.comSignalTriggCnt.data_signal.emit(self.triggCnt)        
-        self.comSignalRawData.data_signal.emit(self.rawdataY)        
-
+        self.comSignalRawData.data_signal.emit(self.rawdataY)
+        
+        self.writeTitleGui()
         return
 
     def enableBtnAction(self):
@@ -408,7 +422,19 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
             return
         if len(fname[0])<=0:
             return
-        np.savez(fname[0],plugin="Scope", rawdataY=self.rawdataY,triggCnt=self.triggCnt,missTriggCnt=self.missTriggCnt,scanToSample=self.scanToTriggSamples)
+        np.savez(fname[0],plugin = "Scope",
+                          rawdataY = self.rawdataY,
+                          triggCnt = self.triggCnt,
+                          missTriggCnt = self.missTriggCnt,
+                          scanToSample = self.scanToTriggSamples,
+                          pvNameTriggCnt = self.pvNameTriggCnt,
+                          pvNameMissTriggCnt = self.pvNameMissTriggCnt,
+                          pvNameRawDataY = self.pvNameRawDataY,
+                          pvnNameEnable = self.pvnNameEnable,
+                          pvnNameSource = self.pvnNameSource,
+                          pvNameNextTimeSource = self.pvNameNextTimeSource,
+                          pvNameTriggSource = self.pvNameTriggSource,
+                          pvNameScanToTriggSamples = self.pvNameScanToTriggSamples)
         return
 
     #def triggBtnAction(self):
