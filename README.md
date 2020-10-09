@@ -355,3 +355,9 @@ Check the following for both slaves:
 * "Distributed clocks" is "yes" and 32 or 64 bit
 
 If status of the above commands are not according to the examples then the etherlab master probbaly needs to be upgraded/reinstalled. Use the etherlab master repo: https://github.com/icshwi/etherlabmaster/ (or for ESS install via cs-entry.)
+
+#### DC drift at startup
+
+The dc clocks in the slaves start to syncronize to the reference clocks as soon as the ioc enter runtime. This procedure can take normally a few seconds but can also take minutes depending on how many slaves in the network. During this startup syncronization phase the dc clock of the trigger and the analog input slaves may be out of sync resulting in acquisition of wrong data getting.
+
+
