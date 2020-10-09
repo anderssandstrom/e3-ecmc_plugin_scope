@@ -16,21 +16,14 @@ https://github.com/paulscherrerinstitute/ecmccfg (ot local ess fork https://gith
 The main functionality of this plugin is triggerd sampling of ethercat data from oversampled and timestamped ethercat slaves, like:
 
 Data:
-
 * EL3702
-
 * EL3742
-
 * EL5101-0011
-
 * ELM3604
-
 * ....
 
 Trigger:
-
 * EL1252
-
 * EL1252-0050
 
 ## Loading of Scope plugin in ecmc: 
@@ -60,21 +53,16 @@ Note: If another plugin is loaded in between the loading of Scope plugins, it wi
 ## Configuration:
 
 Three links to ethercat data needs to be defined:
-1. Source data
-
-2. Source data timestamp
-
-3. Trigger timestamp
+* Source data
+* Source data timestamp
+* Trigger timestamp
 
 All these three links needs to be defined in the plugin startup configuration string.
 
 Other configurations that can be made:
-
-4. Data elements to collect
-
-5. Debug printouts 
-
-6. Enable
+* Data elements to collect
+* Debug printouts 
+* Enable
 
   
 ### Source data (mandatory)
