@@ -464,26 +464,37 @@ class ecmcScopeMainGui(QtWidgets.QDialog):
         # create an axis for spectrum
         if self.axRaw is None:
            self.axRaw = self.figure.add_subplot(111)
+           plt.ion()           
 
-        # plot data 
-        if self.plottedLineRaw is not None:
-            self.plottedLineRaw.remove()
-
-        self.plottedLineRaw, = self.axRaw.plot(self.rawdataY, 'b*-') 
-        #self.plottedLineRaw, = self.axRaw.plot(self.rawdataX,self.rawdataY, 'b*-') 
-        self.axRaw.grid(True)
-
-        self.axRaw.set_xlabel('Samples []')
-        if self.offline:
-           self.axRaw.set_ylabel(self.pvNameRawDataY)  # No unit in offline mode..
+        
+        if self.plottedLineRaw is None:
+            self.plottedLineRaw, = self.axRaw.plot(self.rawdataY, 'b*-')
+            self.canvas.draw()
+            self.axRaw.set_xlabel('Samples []')
+            if self.offline:
+               self.axRaw.set_ylabel(self.pvNameRawDataY)  # No unit in offline mode..
+            else:
+               self.axRaw.set_ylabel(self.pvNameRawDataY  +' [' + self.pvRawData.units + ']') 
         else:
-           self.axRaw.set_ylabel(self.pvNameRawDataY  +' [' + self.pvRawData.units + ']') 
+            self.plottedLineRaw.set_ydata(self.rawdataY)
+              
+
+        # plot data         
+        #self.axRaw.grid(True)
+
         # refresh canvas 
-        self.canvas.draw()
+        #self.canvas.draw()
+        #self.canvas.flush_events()      
         self.axRaw.autoscale(enable=True)
         self.allowSave = True
         self.saveBtn.setEnabled(self.allowSave)
 
+
+        if not self.plottedLineRaw is None:
+           self.axRaw.draw_artist(self.axRaw.patch)
+           self.axRaw.draw_artist(self.plottedLineRaw)
+           self.canvas.update()
+           self.canvas.flush_events()
 
 def printOutHelp():
   print("ecmcScopeMainGui: Plots waveforms of FFT data (updates on Y data callback). ")
