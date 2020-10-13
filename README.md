@@ -148,6 +148,8 @@ IOC_TEST:Plugin-Scope0-Data-Act
 ### ecmcScopeMainGui
 
 A simple pyqt gui is provided to visualize and control the scope ([GUI](tools/ecmcScopeMainGui.py)).
+The gui are included in the ecmccomgui repo:
+https://github.com/anderssandstrom/ecmccomgui
 
 The tool recives data from the EPICS records by pyepics framework.
 
