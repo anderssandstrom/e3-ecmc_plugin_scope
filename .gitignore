@@ -13,4 +13,4 @@ core.*
 *_old/
 *PVs.list
 *-loc/*.Makefile
-ecmcPlugin_Simple-loc/*.Makefile
+ecmc_plugin_scope/*.Makefile
